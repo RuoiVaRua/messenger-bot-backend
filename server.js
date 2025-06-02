@@ -9,11 +9,12 @@ const port = process.env.PORT || 3000; // Cổng cho server backend
 
 // Lấy các biến môi trường
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
-const FACEBOOK_PAGE_ID = process.env.FACEBOOK_PAGE_ID; // Hoặc ID của người nhận nếu bạn biết PSID
+const PAGE_SCOPED_USER_ID = process.env.PAGE_SCOPED_USER_ID;
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
 // Kiểm tra xem các biến môi trường đã được tải chưa
-if (!PAGE_ACCESS_TOKEN || !FACEBOOK_PAGE_ID) {
-    console.error('Lỗi: PAGE_ACCESS_TOKEN hoặc FACEBOOK_PAGE_ID không được đặt trong file .env');
+if (!PAGE_ACCESS_TOKEN || !PAGE_SCOPED_USER_ID || !VERIFY_TOKEN) {
+    console.error('Lỗi: PAGE_ACCESS_TOKEN hoặc PAGE_SCOPED_USER_ID hoặc VERIFY_TOKEN không được đặt trong file .env');
     process.exit(1);
 }
 
@@ -21,20 +22,65 @@ if (!PAGE_ACCESS_TOKEN || !FACEBOOK_PAGE_ID) {
 app.use(express.json()); // Cho phép server đọc JSON từ body của request
 app.use(cors()); // Cho phép yêu cầu từ các domain khác (quan trọng cho frontend)
 
+// Webhook Verification (cho Facebook xác thực)
+app.get('/webhook', (req, res) => {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+
+    if (mode && token) {
+        if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+            console.log('WEBHOOK_VERIFIED');
+            res.status(200).send(challenge);
+        } else {
+            res.sendStatus(403);
+        }
+    } else {
+        res.sendStatus(400);
+    }
+});
+
+// Webhook Event Handling (nhận sự kiện từ Facebook)
+app.post('/webhook', (req, res) => {
+    let body = req.body;
+
+    // Kiểm tra xem đây có phải là sự kiện từ Page Messenger không
+    if (body.object === 'page') {
+        body.entry.forEach(function(entry) {
+            let webhook_event = entry.messaging[0];
+            console.log("Webhook Event:", webhook_event);
+
+            // Lấy PSID của người gửi
+            let sender_psid = webhook_event.sender.id;
+            console.log('PSID của người gửi:', sender_psid);
+
+            // *** LƯU PSID NÀY LẠI! ***
+            // Đây chính là ID mà bạn sẽ dùng làm recipient.id để gửi tin nhắn
+            // Bạn có thể lưu nó vào database hoặc vào một biến tạm thời để test.
+            // Ví dụ: global.myTestPSID = sender_psid;
+        });
+        res.status(200).send('EVENT_RECEIVED');
+    } else {
+        res.sendStatus(404);
+    }
+});
+
 // Endpoint API để gửi tin nhắn
 app.post('/api/send-message', async (req, res) => {
     const { message } = req.body; // Nhận tin nhắn từ frontend
+    // Dán PSID của tài khoản cá nhân của bạn vào đây sau khi lấy được từ webhook
+    const MY_PSID_FROM_PAGE = PAGE_SCOPED_USER_ID; 
 
-    if (!message) {
-        return res.status(400).json({ error: 'Nội dung tin nhắn là bắt buộc.' });
+    if (!message || !MY_PSID_FROM_PAGE) {
+        return res.status(400).json({ error: 'Nội dung tin nhắn và PSID người nhận là bắt buộc.' });
     }
 
     // Cấu hình yêu cầu API đến Messenger Platform
-    const url = `https://graph.facebook.com/v19.0/${FACEBOOK_PAGE_ID}/messages?access_token=${PAGE_ACCESS_TOKEN}`;
+    const url = `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`; // Lưu ý: endpoint đổi từ PAGE_ID sang /me/messages
 
     const payload = {
         recipient: {
-            id: 100011598824751
+            id: MY_PSID_FROM_PAGE // <-- Sử dụng PSID ở đây
         },
         message: {
             text: message
