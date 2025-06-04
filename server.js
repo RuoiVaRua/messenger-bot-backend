@@ -112,24 +112,34 @@ app.post('/api/send-message', async (req, res) => {
             messaging_type: "MESSAGE_TAG",
             tag: "ONE_TIME_NOTIFICATION"            
         }
+        // : {
+        //     recipient: {
+        //         id: MY_PSID_FROM_PAGE // <-- Sử dụng PSID ở đây
+        //     },
+        //     message: {
+        //         text: message,
+        //         quick_replies: [
+        //             {
+        //                 content_type: "ONE_TIME_NOTIF_REQ",
+        //                 // title: "Thông báo cho tôi bất cứ điều gì",
+        //                 payload: "OTN_YEU_CAU",
+        //                 // messenger_extensions: true
+        //             }
+        //         ]            
+        //     },
+        //     // messaging_type: "MESSAGE_TAG",
+        //     // tag: "ONE_TIME_NOTIFICATION"
+        // };
         : {
             recipient: {
                 id: MY_PSID_FROM_PAGE // <-- Sử dụng PSID ở đây
             },
             message: {
-                text: message,
-                quick_replies: [
-                    {
-                        content_type: "ONE_TIME_NOTIF_REQ",
-                        // title: "Thông báo cho tôi bất cứ điều gì",
-                        payload: "OTN_YEU_CAU",
-                        // messenger_extensions: true
-                    }
-                ]            
+                text: message
             },
-            // messaging_type: "MESSAGE_TAG",
-            // tag: "ONE_TIME_NOTIFICATION"
-        };
+            messaging_type: "MESSAGE_TAG",
+            tag: "ACCOUNT_UPDATE"               
+        }
 
     console.log('Đang gửi tin nhắn:', message);
     try {
