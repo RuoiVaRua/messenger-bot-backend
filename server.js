@@ -185,11 +185,17 @@ app.post('/api/send-message', async (req, res) => {
 // Hàm trợ giúp để lấy vị trí người dùng
 async function getUserLocation(req) {
     try {
-        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        let clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
         console.log('Đang lấy vị trí người dùng từ IP: ', clientIp);
 
         if (!clientIp) {
             return { success: false, error: 'Không thể xác định địa chỉ IP của người dùng.' };
+        }
+        if (clientIp.includes(',')) {
+            // Nếu có nhiều IP, lấy IP đầu tiên
+            const ips = clientIp.split(',');
+            console.log('Nhiều IP được phát hiện, sử dụng IP đầu tiên:', ips[0].trim());
+            clientIp = ips[0].trim();
         }
 
         const response = await fetch(`https://ipinfo.io/${clientIp}/json?token=${IP_INFO_KEY}`);
