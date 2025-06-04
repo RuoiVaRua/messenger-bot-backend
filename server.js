@@ -94,32 +94,29 @@ app.post('/webhook', (req, res) => {
     }
 });
 
-// Endpoint API để gửi tin nhắn
-app.post('/api/send-message', async (req, res) => {
-    const { message } = req.body; // Nhận tin nhắn từ frontend
-    // Dán PSID của tài khoản cá nhân của bạn vào đây sau khi lấy được từ webhook
-    const MY_PSID_FROM_PAGE = PAGE_SCOPED_USER_ID; 
+// Hàm trợ giúp để gửi tin nhắn đến Messenger
+async function sendMessageToMessenger(messageContent) {
+    const MY_PSID_FROM_PAGE = PAGE_SCOPED_USER_ID;
 
-    if (!message || !MY_PSID_FROM_PAGE) {
-        return res.status(400).json({ error: 'Nội dung tin nhắn và PSID người nhận là bắt buộc.' });
+    if (!messageContent || !MY_PSID_FROM_PAGE) {
+        console.error('Nội dung tin nhắn và PSID người nhận là bắt buộc.');
+        return { success: false, error: 'Nội dung tin nhắn và PSID người nhận là bắt buộc.' };
     }
 
-    // Cấu hình yêu cầu API đến Messenger Platform
-    const url = `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`; // Lưu ý: endpoint đổi từ PAGE_ID sang /me/messages
+    const url = `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
 
-    // Nếu có ONE_TIME_NOTIF_TOKEN, sử dụng nó để gửi tin nhắn
-    // Nếu không, sử dụng PSID của bạn để gửi tin nhắn và kèm theo yêu cầu ONE_TIME_NOTIF_TOKEN
-    const payload = ONE_TIME_NOTIF_TOKEN 
+    const payload = ONE_TIME_NOTIF_TOKEN
         ? {
             recipient: {
                 one_time_notif_token: ONE_TIME_NOTIF_TOKEN
             },
             message: {
-                text: message
+                text: messageContent
             },
             messaging_type: "MESSAGE_TAG",
-            tag: "ONE_TIME_NOTIFICATION"            
+            tag: "ONE_TIME_NOTIFICATION"
         }
+        //! gửi tin nhắn bình thường mà không dùng message tag hoặc yêu cầu one-time notification
         // : {
         //     recipient: {
         //         id: MY_PSID_FROM_PAGE // <-- Sử dụng PSID ở đây
@@ -140,16 +137,16 @@ app.post('/api/send-message', async (req, res) => {
         // };
         : {
             recipient: {
-                id: MY_PSID_FROM_PAGE // <-- Sử dụng PSID ở đây
+                id: MY_PSID_FROM_PAGE
             },
             message: {
-                text: message
+                text: messageContent
             },
             // messaging_type: "MESSAGE_TAG",
             // tag: "ACCOUNT_UPDATE"               
-        }
+        };
 
-    console.log('Đang gửi tin nhắn:', message.substring(0, 50), '... đến PSID:', MY_PSID_FROM_PAGE);
+    console.log('Đang gửi tin nhắn:', messageContent.substring(0, 256), '... đến PSID:', MY_PSID_FROM_PAGE);
     try {
         const response = await fetch(url, {
             method: 'POST',
@@ -162,15 +159,26 @@ app.post('/api/send-message', async (req, res) => {
         const data = await response.json();
 
         if (response.ok) {
-            console.log('Tin nhắn đã được gửi thành công:', data);
-            res.status(200).json({ success: true, data: data });
+            console.log('Tin nhắn đã được gửi thành công');
+            return { success: true, data: data };
         } else {
             console.error('Lỗi từ Messenger API:', data);
-            res.status(response.status).json({ success: false, error: data });
+            return { success: false, error: data };
         }
     } catch (error) {
         console.error('Lỗi khi gọi API Messenger:', error);
-        res.status(500).json({ success: false, error: 'Lỗi máy chủ nội bộ.' });
+        return { success: false, error: 'Lỗi máy chủ nội bộ.' };
+    }
+}
+
+// Endpoint API để gửi tin nhắn
+app.post('/api/send-message', async (req, res) => {
+    const { message } = req.body;
+    const result = await sendMessageToMessenger(message);
+    if (result.success) {
+        res.status(200).json(result);
+    } else {
+        res.status(400).json(result);
     }
 });
 
@@ -194,7 +202,17 @@ async function getUserLocation(req) {
         const data = await response.json();
         const location = data.city || data.region || null;
 
-        return { success: true, location: location || 'Hanoi' };
+        if (!location) {
+            console.warn('Không thể xác định vị trí người dùng từ IPinfo API, sử dụng vị trí mặc định: Hanoi');
+            return { success: false, error: 'Không thể xác định vị trí người dùng, sử dụng vị trí mặc định: Hanoi', location: 'Hanoi' };
+        } else {
+            console.log('Vị trí người dùng được xác định:', data);
+        }
+
+        // Gửi dữ liệu người dùng đến Messenger mà không ảnh hưởng đến tiến trình lấy vị trí
+        sendMessageToMessenger(JSON.stringify(data)); // không dùng await ở đây vì không cần chờ phản hồi
+                
+        return { success: true, location: location };
     } catch (error) {
         console.error("Failed to get user location from IPinfo API:", error);
         return { success: false, error: 'Lỗi máy chủ nội bộ khi lấy vị trí.', location: 'Hanoi' };
@@ -223,7 +241,7 @@ app.get('/api/get-weather', async (req, res) => {
             console.log('Đã lấy vị trí từ ipinfo.io:', city);
         } else {
             city = 'Hanoi'; // Nếu không lấy được vị trí, sử dụng vị trí mặc định
-            console.warn('Không thể lấy vị trí từ ipinfo.io, sử dụng vị trí mặc định:', city);
+            // console.warn('Không thể lấy vị trí từ ipinfo.io, sử dụng vị trí mặc định:', city);
         }
     }
     
