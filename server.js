@@ -98,7 +98,6 @@ app.post('/api/send-message', async (req, res) => {
     // Cấu hình yêu cầu API đến Messenger Platform
     const url = `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`; // Lưu ý: endpoint đổi từ PAGE_ID sang /me/messages
 
-    console.log('========== one-time notification token: ', ONE_TIME_NOTIF_TOKEN);
     // Nếu có ONE_TIME_NOTIF_TOKEN, sử dụng nó để gửi tin nhắn
     // Nếu không, sử dụng PSID của bạn để gửi tin nhắn và kèm theo yêu cầu ONE_TIME_NOTIF_TOKEN
     const payload = ONE_TIME_NOTIF_TOKEN 
@@ -137,8 +136,8 @@ app.post('/api/send-message', async (req, res) => {
             message: {
                 text: message
             },
-            messaging_type: "MESSAGE_TAG",
-            tag: "ACCOUNT_UPDATE"               
+            // messaging_type: "MESSAGE_TAG",
+            // tag: "ACCOUNT_UPDATE"               
         }
 
     console.log('Đang gửi tin nhắn:', message);
