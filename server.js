@@ -13,6 +13,7 @@ const PAGE_SCOPED_USER_ID = process.env.PAGE_SCOPED_USER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 const IP_INFO_KEY = process.env.IP_INFO_KEY;
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
+// const BACK_END_URL = process.env.BACK_END_URL || `http://localhost:${port}`; // URL của backend, có thể dùng trong frontend
 let ONE_TIME_NOTIF_TOKEN = ''; // Biến này sẽ lưu one-time notification token nếu có
 
 // Kiểm tra xem các biến môi trường đã được tải chưa
@@ -148,7 +149,7 @@ app.post('/api/send-message', async (req, res) => {
             // tag: "ACCOUNT_UPDATE"               
         }
 
-    console.log('Đang gửi tin nhắn:', message);
+    console.log('Đang gửi tin nhắn:', message.substring(0, 50), '... đến PSID:', MY_PSID_FROM_PAGE);
     try {
         const response = await fetch(url, {
             method: 'POST',
@@ -173,34 +174,60 @@ app.post('/api/send-message', async (req, res) => {
     }
 });
 
-// Endpoint API để lấy vị trí người dùng
-app.get('/api/get-location', async (_req, res) => {
+// Hàm trợ giúp để lấy vị trí người dùng
+async function getUserLocation(req) {
     try {
-        const response = await fetch(`https://ipinfo.io/json?token=${IP_INFO_KEY}`);
+        const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        console.log('Đang lấy vị trí người dùng từ IP: ', clientIp);
+
+        if (!clientIp) {
+            return { success: false, error: 'Không thể xác định địa chỉ IP của người dùng.' };
+        }
+
+        const response = await fetch(`https://ipinfo.io/${clientIp}/json?token=${IP_INFO_KEY}`);
         
         if (!response.ok) {
-            console.error(`IPinfo API request failed with status ${response.status}`);
-            return res.status(response.status).json({ success: false, error: `IPinfo API request failed with status ${response.status}` });
+            console.error(`IPinfo API request failed for IP ${clientIp} with status ${response.status}`);
+            return { success: false, error: `IPinfo API request failed with status ${response.status}` };
         }
 
         const data = await response.json();
         const location = data.city || data.region || null;
 
-        res.status(200).json({ success: true, location: location || 'Hanoi' });
+        return { success: true, location: location || 'Hanoi' };
     } catch (error) {
         console.error("Failed to get user location from IPinfo API:", error);
-        res.status(500).json({ success: false, error: 'Lỗi máy chủ nội bộ khi lấy vị trí.', location: 'Hanoi' });
+        return { success: false, error: 'Lỗi máy chủ nội bộ khi lấy vị trí.', location: 'Hanoi' };
+    }
+}
+
+// Endpoint API để lấy vị trí người dùng
+app.get('/api/get-location', async (req, res) => {
+    const result = await getUserLocation(req);
+    if (result.success) {
+        res.status(200).json(result);
+    } else {
+        res.status(result.error.includes('Không thể xác định địa chỉ IP') ? 400 : 500).json(result);
     }
 });
 
 // Endpoint API để lấy thời tiết hiện tại
 app.get('/api/get-weather', async (req, res) => {
-    const city = req.query.city;
-    const lang = req.query.lang || 'en';
+    let city = req.query.city;
+    const lang = req.query.lang || 'vi';
 
     if (!city) {
-        return res.status(400).json({ success: false, error: 'Tham số "city" là bắt buộc.' });
+        const locationResult = await getUserLocation(req);
+        if (locationResult.success) {
+            city = locationResult.location;
+            console.log('Đã lấy vị trí từ ipinfo.io:', city);
+        } else {
+            city = 'Hanoi'; // Nếu không lấy được vị trí, sử dụng vị trí mặc định
+            console.warn('Không thể lấy vị trí từ ipinfo.io, sử dụng vị trí mặc định:', city);
+        }
     }
+    
+    console.log('Đang lấy thời tiết cho thành phố (tỉnh):', city, 'với ngôn ngữ:', lang);
 
     try {
         const response = await fetch(
