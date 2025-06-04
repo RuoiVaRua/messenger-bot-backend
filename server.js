@@ -11,11 +11,19 @@ const port = process.env.PORT || 3000; // Cổng cho server backend
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
 const PAGE_SCOPED_USER_ID = process.env.PAGE_SCOPED_USER_ID;
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
+const IP_INFO_KEY = process.env.IP_INFO_KEY;
+const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 let ONE_TIME_NOTIF_TOKEN = ''; // Biến này sẽ lưu one-time notification token nếu có
 
 // Kiểm tra xem các biến môi trường đã được tải chưa
 if (!PAGE_ACCESS_TOKEN || !PAGE_SCOPED_USER_ID || !VERIFY_TOKEN) {
     console.error('Lỗi: PAGE_ACCESS_TOKEN hoặc PAGE_SCOPED_USER_ID hoặc VERIFY_TOKEN không được đặt trong file .env');
+    process.exit(1);
+}
+
+// Kiểm tra xem các biến môi trường đã được tải chưa
+if (!IP_INFO_KEY || !WEATHER_API_KEY) {
+    console.error('Lỗi: Các API Key (IPinfo hoặc WeatherAPI) không được đặt trong file .env');
     process.exit(1);
 }
 
@@ -162,6 +170,66 @@ app.post('/api/send-message', async (req, res) => {
     } catch (error) {
         console.error('Lỗi khi gọi API Messenger:', error);
         res.status(500).json({ success: false, error: 'Lỗi máy chủ nội bộ.' });
+    }
+});
+
+// Endpoint API để lấy vị trí người dùng
+app.get('/api/get-location', async (_req, res) => {
+    try {
+        const response = await fetch(`https://ipinfo.io/json?token=${IP_INFO_KEY}`);
+        
+        if (!response.ok) {
+            console.error(`IPinfo API request failed with status ${response.status}`);
+            return res.status(response.status).json({ success: false, error: `IPinfo API request failed with status ${response.status}` });
+        }
+
+        const data = await response.json();
+        const location = data.city || data.region || null;
+
+        res.status(200).json({ success: true, location: location || 'Hanoi' });
+    } catch (error) {
+        console.error("Failed to get user location from IPinfo API:", error);
+        res.status(500).json({ success: false, error: 'Lỗi máy chủ nội bộ khi lấy vị trí.', location: 'Hanoi' });
+    }
+});
+
+// Endpoint API để lấy thời tiết hiện tại
+app.get('/api/get-weather', async (req, res) => {
+    const city = req.query.city;
+    const lang = req.query.lang || 'en';
+
+    if (!city) {
+        return res.status(400).json({ success: false, error: 'Tham số "city" là bắt buộc.' });
+    }
+
+    try {
+        const response = await fetch(
+            `https://api.weatherapi.com/v1/current.json?q=${encodeURIComponent(city)}&lang=${lang}&key=${WEATHER_API_KEY}`
+        );
+
+        if (!response.ok) {
+            console.error(`Weather API request failed with status ${response.status}`);
+            return res.status(response.status).json({ success: false, error: `Weather API request failed with status ${response.status}` });
+        }
+
+        const data = await response.json();
+
+        if (data?.current) {
+            res.status(200).json({
+                success: true,
+                weather: {
+                    temp_c: data.current.temp_c ? Math.round(data.current.temp_c) + '°C' : '',
+                    condition_text: data.current.condition.text || '',
+                    condition_icon: data.current.condition.icon ? 'https:' + data.current.condition.icon : ''
+                }
+            });
+        } else {
+            console.warn("Weather data received but 'current' field is missing.");
+            res.status(404).json({ success: false, error: "Không tìm thấy dữ liệu thời tiết cho thành phố này." });
+        }
+    } catch (error) {
+        console.error("Failed to get current weather from WeatherAPI:", error);
+        res.status(500).json({ success: false, error: 'Lỗi máy chủ nội bộ khi lấy thời tiết.' });
     }
 });
 
