@@ -59,6 +59,7 @@ export async function sendMessageToMessenger(messageContent, one_time_notif_toke
             // Nếu gửi ngoài 24h mà không phải OTN follow-up, cần MESSAGE_TAG hợp lệ (ví dụ: ACCOUNT_UPDATE)
         };
         console.log('Đang gửi tin nhắn thường tới PSID:', MY_PSID_FROM_PAGE);
+        console.log('Nội dung tin nhắn:', messageContent.substring(0, 50) + '...'); // Hiển thị 50 ký tự đầu tiên
     }
 
     try {

@@ -39,7 +39,7 @@ export default async (req, res) => {
 
                     // Xử lý sự kiện tin nhắn thông thường
                     if (webhook_event.message) {
-                        console.log('Tin nhắn đến:', webhook_event.message.text);
+                        console.log('Tin nhắn đến:', webhook_event.message?.text || webhook_event.message?.attachments?.type);
                         // TODO: Thêm logic xử lý tin nhắn đến ở đây
                     } 
                     // Xử lý sự kiện người dùng đồng ý One-Time Notification (OTN)

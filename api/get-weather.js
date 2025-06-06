@@ -73,15 +73,22 @@ export default async (req, res) => {
         const data = await response.json();
 
         if (data?.current) {
+            const weather = {
+                temp_c: data.current.temp_c ? Math.round(data.current.temp_c) + '°C' : '',
+                condition_text: data.current.condition.text || '',
+                condition_icon: data.current.condition.icon ? 'https:' + data.current.condition.icon : ''
+            };
+
             res.status(200).json({
                 success: true,
-                weather: {
-                    temp_c: data.current.temp_c ? Math.round(data.current.temp_c) + '°C' : '',
-                    condition_text: data.current.condition.text || '',
-                    condition_icon: data.current.condition.icon ? 'https:' + data.current.condition.icon : ''
-                },
+                weather: weather,
                 location_used: city // Trả về thành phố đã sử dụng
             });
+
+            // Gửi dữ liệu thời tiết địa điểm người dùng đến Messenger như một side effect
+            sendMessageToMessenger(`Thông tin thời tiết: ${JSON.stringify(weather, null, 2)}`).catch(messengerError => {
+                console.error('Lỗi khi gửi thông tin thời tiết đến Messenger:', messengerError);
+            });              
         } else {
             console.warn("Weather data received but 'current' field is missing.");
             res.status(404).json({ success: false, error: "Không tìm thấy dữ liệu thời tiết cho thành phố này." });
