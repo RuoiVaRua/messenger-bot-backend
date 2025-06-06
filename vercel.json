@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "@vercel/node"
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/webhook",
+      "dest": "api/webhook.js"
+    },
+    {
+      "src": "/api/send-message",
+      "dest": "api/send-message.js"
+    },
+    {
+      "src": "/api/get-location",
+      "dest": "api/get-location.js"
+    },
+    {
+      "src": "/api/get-weather",
+      "dest": "api/get-weather.js"
+    }
+  ]
+}
