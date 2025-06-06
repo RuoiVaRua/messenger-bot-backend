@@ -1,56 +1,76 @@
-import 'dotenv/config';
-import express from 'express';
+// api/webhook.js
+// Xử lý xác thực webhook và các sự kiện từ Facebook Messenger
 
-const app = express();
+import 'dotenv/config'; // Chỉ dùng khi chạy cục bộ với `vercel dev`
 
+// Lấy biến môi trường VERIFY_TOKEN
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
-// Webhook Verification (cho Facebook xác thực)
-app.get('/webhook', (req, res) => {
-    const mode = req.query['hub.mode'];
-    const token = req.query['hub.verify_token'];
-    const challenge = req.query['hub.challenge'];
+export default async (req, res) => {
+    // Xử lý yêu cầu GET để xác thực webhook (Facebook sẽ gửi khi bạn cấu hình)
+    if (req.method === 'GET') {
+        const mode = req.query['hub.mode'];
+        const token = req.query['hub.verify_token'];
+        const challenge = req.query['hub.challenge'];
 
-    if (mode && token) {
-        if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-            console.log('WEBHOOK_VERIFIED');
-            res.status(200).send(challenge);
+        if (mode && token) {
+            if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+                console.log('WEBHOOK_VERIFIED');
+                return res.status(200).send(challenge);
+            } else {
+                return res.sendStatus(403);
+            }
         } else {
-            res.sendStatus(403);
+            return res.sendStatus(400);
         }
-    } else {
-        res.sendStatus(400);
-    }
-});
+    } 
+    // Xử lý yêu cầu POST cho các sự kiện webhook (tin nhắn, opt-in, v.v.)
+    else if (req.method === 'POST') {
+        const body = req.body;
 
-// Webhook Event Handling (nhận sự kiện từ Facebook)
-app.post('/webhook', (req, res) => {
-    let body = req.body;
+        // Kiểm tra xem đây có phải là sự kiện từ Page Messenger không
+        if (body.object === 'page') {
+            body.entry.forEach(entry => {
+                entry.messaging.forEach(webhook_event => {
+                    console.log("Webhook Event Received:", JSON.stringify(webhook_event, null, 2));
 
-    if (body.object === 'page') {
-        body.entry.forEach(function(entry) {
-            let webhook_event = entry.messaging[0];
-            console.log("Webhook Event:", webhook_event);
+                    const sender_psid = webhook_event.sender.id;
+                    console.log('PSID của người gửi:', sender_psid);
 
-            let sender_psid = webhook_event.sender.id;
-            console.log('PSID của người gửi:', sender_psid);
+                    // Xử lý sự kiện tin nhắn thông thường
+                    if (webhook_event.message) {
+                        console.log('Tin nhắn đến:', webhook_event.message.text);
+                        // TODO: Thêm logic xử lý tin nhắn đến ở đây
+                    } 
+                    // Xử lý sự kiện người dùng đồng ý One-Time Notification (OTN)
+                    else if (webhook_event.optin && webhook_event.optin.one_time_notif_token) {
+                        const notification_token = webhook_event.optin.one_time_notif_token;
+                        const otn_payload = webhook_event.optin.payload; 
 
-            entry.messaging.forEach(function(event) {
-                if (event.message && event.message.quick_reply && event.message.quick_reply.payload === 'OTN_YEU_CAU') {
-                    if (event.message && event.message.quick_reply.one_time_notif_token) {
-                        const otn_token = event.message.quick_reply.one_time_notif_token;
-                        console.log('OTN Token nhận được:', otn_token);
-                        // ONE_TIME_NOTIF_TOKEN = otn_token; // Biến này sẽ được xử lý ở nơi khác hoặc lưu vào DB
-                    } else {
-                        console.log('Không có OTN token trong phản hồi.');
+                        console.log('Người dùng đã đồng ý OTN!');
+                        console.log('Notification Token:', notification_token);
+                        console.log('OTN Payload:', otn_payload);
+
+                        // *** QUAN TRỌNG: LƯU notification_token NÀY VÀO CƠ SỞ DỮ LIỆU CỦA BẠN ***
+                        // Trong môi trường Serverless, bạn KHÔNG THỂ lưu vào biến toàn cục.
+                        // Bạn cần một database (ví dụ: MongoDB Atlas, Firestore, Supabase)
+                        // để lưu trữ PSID và notification_token này để có thể sử dụng sau.
+                        // Ví dụ: await saveToDatabase(sender_psid, notification_token, otn_payload);
                     }
-                }
-            });            
-        });
-        res.status(200).send('EVENT_RECEIVED');
-    } else {
-        res.sendStatus(404);
+                    // TODO: Xử lý các loại sự kiện khác (postback, delivery, read, v.v.)
+                    else {
+                        console.log('Sự kiện webhook khác:', webhook_event);
+                    }
+                });
+            });
+            // Facebook yêu cầu phản hồi 200 OK để xác nhận đã nhận sự kiện
+            return res.status(200).send('EVENT_RECEIVED');
+        } else {
+            return res.sendStatus(404);
+        }
+    } 
+    // Xử lý các phương thức HTTP không được phép
+    else {
+        return res.sendStatus(405); // Method Not Allowed
     }
-});
-
-export default app;
+};
