@@ -31,7 +31,11 @@ export default async (req, res) => {
     let locationResult;
     try {
         console.log('Đang lấy vị trí người dùng từ IP:', targetIp);
-        const response = await fetch(`https://ipinfo.io/${targetIp}/json?token=${IP_INFO_KEY}`);
+        const response = await fetch(
+            targetIp.includes('::1') // Kiểm tra nếu là localhost
+                ? `https://ipinfo.io/json?token=${IP_INFO_KEY}` // Sử dụng IPinfo API với localhost
+                : `https://ipinfo.io/${targetIp}/json?token=${IP_INFO_KEY}`
+        );
         
         if (!response.ok) {
             console.error(`Yêu cầu IPinfo API thất bại cho IP ${targetIp} với trạng thái ${response.status}`);

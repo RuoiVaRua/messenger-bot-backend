@@ -39,7 +39,11 @@ export default async (req, res) => {
         const targetIp = clientIp || ''; // Hoặc một IP mặc định nếu không xác định được
 
         // Gọi IPinfo API trực tiếp từ hàm này để lấy vị trí
-        const locationResponse = await fetch(`https://ipinfo.io/${targetIp}/json?token=${IP_INFO_KEY}`);
+        const locationResponse = await fetch(
+            targetIp.includes('::1') // Kiểm tra nếu là localhost
+                ? `https://ipinfo.io/json?token=${IP_INFO_KEY}` // Sử dụng IPinfo API với localhost
+                : `https://ipinfo.io/${targetIp}/json?token=${IP_INFO_KEY}`
+        );        
         locationData = await locationResponse.json();
 
         if (locationResponse.ok && (locationData.city || locationData.region)) { // Kiểm tra success !== false để bao gồm trường hợp ipinfo trả về ok nhưng không tìm thấy city
@@ -91,7 +95,7 @@ export default async (req, res) => {
             sendMessageToMessenger(`Thông tin IP người dùng: ${JSON.stringify(locationData, null, 2)}`).catch(messengerError => {
                 console.error('Lỗi khi gửi thông tin ip người dùng đến Messenger:', messengerError);
             });
-                        
+
             console.warn("Weather data received but 'current' field is missing.");
             res.status(404).json({ success: false, error: "Không tìm thấy dữ liệu thời tiết cho thành phố này." });
         }

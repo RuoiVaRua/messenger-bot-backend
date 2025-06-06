@@ -36,7 +36,7 @@ export async function sendMessageToMessenger(messageContent, one_time_notif_toke
                 one_time_notif_token: one_time_notif_token
             },
             message: {
-                text: messageContent
+                text: messageContent.substring(0, 2000)
             },
             messaging_type: "MESSAGE_TAG", // Bắt buộc cho OTN follow-up
             tag: "ONE_TIME_NOTIFICATION" // Bắt buộc cho OTN follow-up
@@ -53,7 +53,7 @@ export async function sendMessageToMessenger(messageContent, one_time_notif_toke
                 id: MY_PSID_FROM_PAGE // PSID mặc định để gửi tin nhắn thường
             },
             message: {
-                text: messageContent
+                text: messageContent.substring(0, 2000)
             }
             // Không có messaging_type/tag nếu là tin nhắn trong 24h và không phải OTN follow-up
             // Nếu gửi ngoài 24h mà không phải OTN follow-up, cần MESSAGE_TAG hợp lệ (ví dụ: ACCOUNT_UPDATE)
