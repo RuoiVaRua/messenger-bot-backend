@@ -2,10 +2,16 @@
 import 'dotenv/config'; 
 import fetch from 'node-fetch'; 
 import { sendMessageToMessenger } from '../utils/messenger.js'; // Import hàm trợ giúp
+import { setCorsHeaders, handleCorsPreflight } from '../utils/cors.js'; // Import CORS helpers
 
 const IP_INFO_KEY = process.env.IP_INFO_KEY;
 
 export default async (req, res) => {
+    setCorsHeaders(res); // Luôn đặt CORS headers
+    if (handleCorsPreflight(req, res)) { // Xử lý preflight OPTIONS request
+        return; 
+    }
+    
     if (req.method !== 'GET') {
         return res.status(405).send('Method Not Allowed');
     }
