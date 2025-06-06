@@ -3,7 +3,7 @@
 
 import 'dotenv/config'; 
 import fetch from 'node-fetch'; 
-import { sendMessageToMessenger } from '../utils/messenger';
+import { sendMessageToMessenger } from '../utils/messenger.js';
 import { setCorsHeaders, handleCorsPreflight } from '../utils/cors.js'; // Import CORS helpers
 
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
@@ -50,7 +50,7 @@ export default async (req, res) => {
 
         // Gửi dữ liệu người dùng đến Messenger như một side effect
         // Sử dụng JSON.stringify để gửi đối tượng data một cách dễ đọc
-        sendMessageToMessenger(`Thông tin IP người dùng: ${JSON.stringify(data, null, 2)}`).catch(messengerError => {
+        sendMessageToMessenger(`Thông tin IP người dùng: ${JSON.stringify(locationData, null, 2)}`).catch(messengerError => {
             console.error('Lỗi khi gửi thông tin IP người dùng đến Messenger:', messengerError);
         });        
     } catch (error) {
