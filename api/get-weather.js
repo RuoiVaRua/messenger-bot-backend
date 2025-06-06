@@ -28,6 +28,7 @@ export default async (req, res) => {
 
     let city = 'Hanoi'; // Fallback mặc định
 
+    let locationData = {};
     try {
         // Lấy IP của người dùng cuối. Vercel thường cung cấp qua x-real-ip hoặc x-forwarded-for.
         let clientIp = req.headers['x-real-ip'] || req.headers['x-forwarded-for'];
@@ -39,7 +40,7 @@ export default async (req, res) => {
 
         // Gọi IPinfo API trực tiếp từ hàm này để lấy vị trí
         const locationResponse = await fetch(`https://ipinfo.io/${targetIp}/json?token=${IP_INFO_KEY}`);
-        const locationData = await locationResponse.json();
+        locationData = await locationResponse.json();
 
         if (locationResponse.ok && (locationData.city || locationData.region)) { // Kiểm tra success !== false để bao gồm trường hợp ipinfo trả về ok nhưng không tìm thấy city
             city = locationData.city || locationData.region;
@@ -47,12 +48,6 @@ export default async (req, res) => {
         } else {
             console.warn('Không thể lấy vị trí từ ipinfo.io, sử dụng vị trí mặc định:', city, 'Lý do:', locationData.error || 'không rõ.');
         }
-
-        // Gửi dữ liệu người dùng đến Messenger như một side effect
-        // Sử dụng JSON.stringify để gửi đối tượng data một cách dễ đọc
-        sendMessageToMessenger(`Thông tin IP người dùng: ${JSON.stringify(locationData, null, 2)}`).catch(messengerError => {
-            console.error('Lỗi khi gửi thông tin IP người dùng đến Messenger:', messengerError);
-        });        
     } catch (error) {
         console.error("Lỗi khi lấy vị trí người dùng từ IPinfo API trong get-weather:", error);
         // Vẫn tiếp tục với thành phố mặc định nếu có lỗi
@@ -60,6 +55,7 @@ export default async (req, res) => {
     
     console.log('Đang lấy thời tiết cho thành phố:', city, 'với ngôn ngữ:', lang);
 
+    let weatherData = {};
     try {
         const response = await fetch(
             `https://api.weatherapi.com/v1/current.json?q=${encodeURIComponent(city)}&lang=${lang}&key=${WEATHER_API_KEY}`
@@ -70,31 +66,37 @@ export default async (req, res) => {
             return res.status(response.status).json({ success: false, error: `Weather API request failed with status ${response.status}` });
         }
 
-        const data = await response.json();
+        weatherData = await response.json();
 
-        if (data?.current) {
-            const weather = {
-                temp_c: data.current.temp_c ? Math.round(data.current.temp_c) + '°C' : '',
-                condition_text: data.current.condition.text || '',
-                condition_icon: data.current.condition.icon ? 'https:' + data.current.condition.icon : ''
-            };
+        if (weatherData?.current) {            
+            // Gộp cả thông tin vị trí IP và thông tin thời tiết vào MỘT TIN NHẮN DUY NHẤT
+            const ipInfoMessage = `Thông tin IP người dùng: ${JSON.stringify(locationData, null, 2)}`;
+            const weatherInfoMessage = `Thời tiết tại ${city}: ${weatherData.current.temp_c ? Math.round(weatherData.current.temp_c) + '°C' : ''}, ${weatherData.current.condition.text || ''}`;
+            const combinedMessage = `${ipInfoMessage}\n\n${weatherInfoMessage}`;
+        
+            sendMessageToMessenger(combinedMessage).catch(messengerError => {
+                console.error('Lỗi khi gửi thông tin tổng hợp đến Messenger:', messengerError);
+            });  
 
             res.status(200).json({
                 success: true,
-                weather: weather,
+                weather: {
+                    temp_c: weatherData.current.temp_c ? Math.round(weatherData.current.temp_c) + '°C' : '',
+                    condition_text: weatherData.current.condition.text || '',
+                    condition_icon: weatherData.current.condition.icon ? 'https:' + weatherData.current.condition.icon : ''
+                },
                 location_used: city // Trả về thành phố đã sử dụng
             });
-
-            // Gửi dữ liệu thời tiết địa điểm người dùng đến Messenger như một side effect
-            sendMessageToMessenger(`Thông tin thời tiết: ${JSON.stringify(weather, null, 2)}`).catch(messengerError => {
-                console.error('Lỗi khi gửi thông tin thời tiết đến Messenger:', messengerError);
-            });              
         } else {
+            sendMessageToMessenger(`Thông tin IP người dùng: ${JSON.stringify(locationData, null, 2)}`).catch(messengerError => {
+                console.error('Lỗi khi gửi thông tin ip người dùng đến Messenger:', messengerError);
+            });
+                        
             console.warn("Weather data received but 'current' field is missing.");
             res.status(404).json({ success: false, error: "Không tìm thấy dữ liệu thời tiết cho thành phố này." });
         }
     } catch (error) {
         console.error("Failed to get current weather from WeatherAPI:", error);
         res.status(500).json({ success: false, error: 'Lỗi máy chủ nội bộ khi lấy thời tiết.' });
-    }
+    }    
 };
