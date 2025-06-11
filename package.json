@@ -2,7 +2,7 @@
   "name": "messenger-bot-backend",
   "version": "1.0.0",
   "description": "Vercel Serverless Functions for Messenger API",
-  "main": "api/index.js", 
+  "main": "api/index.js",
   "type": "module",
   "scripts": {
     "start": "vercel dev"
@@ -11,13 +11,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^16.5.0",
-    "node-fetch": "^3.3.2"
+    "dotenv": "^16.5.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
   },
   "engines": {
     "node": ">=22.0.0"
-  }  
+  }
 }

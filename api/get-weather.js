@@ -2,7 +2,6 @@
 // Lấy thông tin thời tiết hiện tại, tự động lấy vị trí từ IP
 
 import 'dotenv/config'; 
-import fetch from 'node-fetch'; 
 import { sendMessageToMessenger } from '../utils/messenger.js';
 import { setCorsHeaders, handleCorsPreflight } from '../utils/cors.js'; // Import CORS helpers
 

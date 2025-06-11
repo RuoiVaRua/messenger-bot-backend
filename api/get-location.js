@@ -1,6 +1,5 @@
 // api/get-location.js
 import 'dotenv/config'; 
-import fetch from 'node-fetch'; 
 import { sendMessageToMessenger } from '../utils/messenger.js'; // Import hàm trợ giúp
 import { setCorsHeaders, handleCorsPreflight } from '../utils/cors.js'; // Import CORS helpers
 

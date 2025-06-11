@@ -2,7 +2,6 @@
 // Hàm tiện ích để gửi tin nhắn đến Messenger API
 
 import 'dotenv/config'; // Tải biến môi trường (nếu chạy cục bộ với `vercel dev`)
-import fetch from 'node-fetch'; // Sử dụng node-fetch cho HTTP requests
 
 // Lấy biến môi trường từ process.env
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
