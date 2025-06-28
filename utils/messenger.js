@@ -93,7 +93,7 @@ export async function sendMessageToMessenger(messageContent, one_time_notif_toke
 
         const data = await response.json();
         console.log('[sendMessageToMessenger] Tin nhắn đã được gửi thành công:', data);
-        return { success: true, data: data };
+        return { success: true };
 
     } catch (error) {
         console.error('[sendMessageToMessenger] Lỗi khi gọi API Messenger (ngoại lệ fetch):', error);

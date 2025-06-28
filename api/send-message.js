@@ -12,10 +12,19 @@ export default async (req, res) => {
         return res.status(405).send('Method Not Allowed');
     }
 
+    let clientIp = req.headers['x-real-ip'] || req.headers['x-forwarded-for'];
+    if (clientIp && clientIp.includes(',')) {
+        clientIp = clientIp.split(',')[0].trim();
+    }
+    const targetIp = clientIp || '';     
+
     const { message, one_time_notif_token } = req.body;
     
     // Gọi hàm trợ giúp để gửi tin nhắn
-    const result = await sendMessageToMessenger(message, one_time_notif_token);
+    const result = await sendMessageToMessenger(
+        targetIp ? 'IP: ' + targetIp + ' \n' + message : message, 
+        one_time_notif_token
+    );
     
     if (result.success) {
         res.status(200).json(result);
