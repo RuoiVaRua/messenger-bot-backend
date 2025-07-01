@@ -18,7 +18,23 @@ export default async (req, res) => {
     }
     const targetIp = clientIp || '';     
 
-    const { message, one_time_notif_token } = req.body;
+    let requestBody;
+
+    // kiểm tra content-type có phải JSON hay là text/plain
+    // text/plain được gửi ở request navigator.sendBeacon phía front-end (để tránh preflight OPTIONS request khi gửi JSON)
+    if (req.headers['content-type'] && req.headers['content-type'].includes('text/plain')) {
+        try {
+            // Đảm bảo req.body là một chuỗi trước khi phân tích cú pháp
+            requestBody = JSON.parse(typeof req.body === 'string' ? req.body : req.body.toString());
+        } catch (e) {
+            console.error('Lỗi phân tích cú pháp JSON từ text/plain:', e);
+            return res.status(400).json({ success: false, error: 'Invalid JSON in request body' });
+        }
+    } else {
+        requestBody = req.body;
+    }
+
+    const { message, one_time_notif_token } = requestBody;
     
     // Gọi hàm trợ giúp để gửi tin nhắn
     const result = await sendMessageToMessenger(
