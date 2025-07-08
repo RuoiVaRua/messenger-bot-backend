@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      PAGE_ACCESS_TOKEN: ${PAGE_ACCESS_TOKEN}
+      VERIFY_TOKEN: ${VERIFY_TOKEN}
+      PAGE_SCOPED_USER_ID: ${PAGE_SCOPED_USER_ID}
+      IP_INFO_KEY: ${IP_INFO_KEY}
+      WEATHER_API_KEY: ${WEATHER_API_KEY}
+      NODE_ENV: development
+    command: npm run start
