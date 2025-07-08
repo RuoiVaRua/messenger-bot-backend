@@ -5,7 +5,10 @@
   "main": "api/index.js",
   "type": "module",
   "scripts": {
-    "start": "vercel dev"
+    "start": "vercel dev",
+    "lint": "eslint .",
+    "test": "jest",
+    "integration-test": "jest tests/integration"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +18,8 @@
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
+    "eslint": "^9.30.1",
+    "jest": "^30.0.4",
     "nodemon": "^3.1.10"
   },
   "engines": {
