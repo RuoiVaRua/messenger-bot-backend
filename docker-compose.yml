@@ -1,18 +1,74 @@
 version: '3.8'
 
 services:
-  app:
-    build: .
+  get-html:
+    build: ./services/get-html
     ports:
-      - "3000:3000"
+      - "3001:3000"
     volumes:
-      - .:/usr/src/app
+      - ./services/get-html:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      NODE_ENV: development
+
+  get-location:
+    build: ./services/get-location
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./services/get-location:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      IP_INFO_KEY: ${IP_INFO_KEY}
+      NODE_ENV: development
+
+  get-weather:
+    build: ./services/get-weather
+    ports:
+      - "3003:3000"
+    volumes:
+      - ./services/get-weather:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      WEATHER_API_KEY: ${WEATHER_API_KEY}
+      NODE_ENV: development
+
+  send-message:
+    build: ./services/send-message
+    ports:
+      - "3004:3000"
+    volumes:
+      - ./services/send-message:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      PAGE_ACCESS_TOKEN: ${PAGE_ACCESS_TOKEN}
+      PAGE_SCOPED_USER_ID: ${PAGE_SCOPED_USER_ID}
+      NODE_ENV: development
+
+  webhook:
+    build: ./services/webhook
+    ports:
+      - "3005:3000"
+    volumes:
+      - ./services/webhook:/usr/src/app
       - /usr/src/app/node_modules
     environment:
       PAGE_ACCESS_TOKEN: ${PAGE_ACCESS_TOKEN}
       VERIFY_TOKEN: ${VERIFY_TOKEN}
-      PAGE_SCOPED_USER_ID: ${PAGE_SCOPED_USER_ID}
-      IP_INFO_KEY: ${IP_INFO_KEY}
-      WEATHER_API_KEY: ${WEATHER_API_KEY}
       NODE_ENV: development
-    command: npm run start
+
+  gateway:
+    build: ./gateway
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./gateway:/usr/src/app
+      - /usr/src/app/node_modules
+    environment:
+      NODE_ENV: development
+    depends_on:
+      - get-html
+      - get-location
+      - get-weather
+      - send-message
+      - webhook
