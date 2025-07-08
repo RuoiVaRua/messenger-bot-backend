@@ -1,4 +1,4 @@
-import { sendMessage } from '../messenger.js';
+import { sendMessageToMessenger } from '../messenger.js';
 
 // Mock the fetch function as it's used internally by sendMessage
 global.fetch = jest.fn(() =>
@@ -18,7 +18,7 @@ describe('sendMessage', () => {
     const messageText = 'Hello, world!';
     const pageAccessToken = 'PAGE_ACCESS_TOKEN';
 
-    const result = await sendMessage(recipientId, messageText, pageAccessToken);
+    const result = await sendMessageToMessenger(messageText, null, 0); // Updated to match sendMessageToMessenger signature
 
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(fetch).toHaveBeenCalledWith(
@@ -44,11 +44,9 @@ describe('sendMessage', () => {
       })
     );
 
-    const recipientId = 'USER_ID';
     const messageText = 'Hello, world!';
-    const pageAccessToken = 'PAGE_ACCESS_TOKEN';
 
-    await expect(sendMessage(recipientId, messageText, pageAccessToken)).rejects.toThrow(
+    await expect(sendMessageToMessenger(messageText, null, 0)).rejects.toThrow(
       'Failed to send message: Bad request'
     );
   });

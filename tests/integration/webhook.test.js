@@ -22,6 +22,7 @@ beforeAll(async () => {
         try {
           resolve(JSON.parse(body));
         } catch (e) {
+		  console.log(e);
           resolve(body); // Handle non-JSON bodies
         }
       });
