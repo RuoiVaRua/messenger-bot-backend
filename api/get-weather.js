@@ -1,17 +1,36 @@
 // api/get-weather.js
 // Lấy thông tin thời tiết hiện tại, tự động lấy vị trí từ IP
 
-import 'dotenv/config'; 
+import 'dotenv/config';
 import { sendMessageToMessenger } from '../utils/messenger.js';
 import { setCorsHeaders, handleCorsPreflight } from '../utils/cors.js'; // Import CORS helpers
+import { createClient } from 'redis'; // Import Redis client
 
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const IP_INFO_KEY = process.env.IP_INFO_KEY; // Cần cả IP_INFO_KEY để gọi nội bộ
+const REDIS_URL = process.env.REDIS_URL || 'redis://localhost:6379'; // Thêm biến môi trường Redis
+
+// Khởi tạo Redis client
+const redisClient = createClient({
+    url: REDIS_URL
+});
+
+redisClient.on('error', err => console.error('Redis Client Error', err));
+
+// Kết nối Redis khi module được tải
+(async () => {
+    try {
+        await redisClient.connect();
+        console.log('Đã kết nối với Redis!');
+    } catch (err) {
+        console.error('Không thể kết nối với Redis:', err);
+    }
+})();
 
 export default async (req, res) => {
     setCorsHeaders(res); // Luôn đặt CORS headers
     if (handleCorsPreflight(req, res)) { // Xử lý preflight OPTIONS request
-        return; 
+        return;
     }
 
     if (req.method !== 'GET') {
@@ -37,22 +56,34 @@ export default async (req, res) => {
         }
         const targetIp = clientIp || ''; // Hoặc một IP mặc định nếu không xác định được
 
-        // Gọi IPinfo API trực tiếp từ hàm này để lấy vị trí
-        const locationResponse = await fetch(
-            targetIp.includes('::1') // Kiểm tra nếu là localhost
-                ? `https://ipinfo.io/json?token=${IP_INFO_KEY}` // Sử dụng IPinfo API với localhost
-                : `https://ipinfo.io/${targetIp}/json?token=${IP_INFO_KEY}`
-        );        
-        locationData = await locationResponse.json();
+        // Tạo khóa cache dựa trên IP
+        const locationCacheKey = `location:${targetIp}`;
+        let cachedLocation = await redisClient.get(locationCacheKey);
 
-        if (locationResponse.ok && (locationData.city || locationData.region)) { // Kiểm tra success !== false để bao gồm trường hợp ipinfo trả về ok nhưng không tìm thấy city
-            city = locationData.city || locationData.region;
-            console.log('Đã lấy vị trí từ ipinfo.io:', city);
+        if (cachedLocation) {
+            locationData = JSON.parse(cachedLocation);
+            city = locationData.city || locationData.region || 'Hanoi';
+            console.log('Đã lấy vị trí từ Redis cache:', city);
         } else {
-            console.warn('Không thể lấy vị trí từ ipinfo.io, sử dụng vị trí mặc định:', city, 'Lý do:', locationData.error || 'không rõ.');
+            // Gọi IPinfo API trực tiếp từ hàm này để lấy vị trí
+            const locationResponse = await fetch(
+                targetIp.includes('::1') // Kiểm tra nếu là localhost
+                    ? `https://ipinfo.io/json?token=${IP_INFO_KEY}` // Sử dụng IPinfo API với localhost
+                    : `https://ipinfo.io/${targetIp}/json?token=${IP_INFO_KEY}`
+            );
+            locationData = await locationResponse.json();
+
+            if (locationResponse.ok && (locationData.city || locationData.region)) { // Kiểm tra success !== false để bao gồm trường hợp ipinfo trả về ok nhưng không tìm thấy city
+                city = locationData.city || locationData.region;
+                console.log('Đã lấy vị trí từ ipinfo.io:', city);
+                // Lưu vào Redis cache với thời gian sống (TTL) 1 giờ
+                await redisClient.setEx(locationCacheKey, 3600, JSON.stringify(locationData));
+            } else {
+                console.warn('Không thể lấy vị trí từ ipinfo.io, sử dụng vị trí mặc định:', city, 'Lý do:', locationData.error || 'không rõ.');
+            }
         }
     } catch (error) {
-        console.error("Lỗi khi lấy vị trí người dùng từ IPinfo API trong get-weather:", error);
+        console.error("Lỗi khi lấy vị trí người dùng từ IPinfo API hoặc Redis trong get-weather:", error);
         // Vẫn tiếp tục với thành phố mặc định nếu có lỗi
     }
     
@@ -60,18 +91,30 @@ export default async (req, res) => {
 
     let weatherData = {};
     try {
-        const response = await fetch(
-            `https://api.weatherapi.com/v1/current.json?q=${encodeURIComponent(city)}&lang=${lang}&key=${WEATHER_API_KEY}`
-        );
+        // Tạo khóa cache dựa trên thành phố và ngôn ngữ
+        const weatherCacheKey = `weather:${city}:${lang}`;
+        let cachedWeather = await redisClient.get(weatherCacheKey);
 
-        if (!response.ok) {
-            console.error(`Weather API request failed with status ${response.status}`);
-            return res.status(response.status).json({ success: false, error: `Weather API request failed with status ${response.status}` });
+        if (cachedWeather) {
+            weatherData = JSON.parse(cachedWeather);
+            console.log('Đã lấy thời tiết từ Redis cache cho:', city);
+        } else {
+            const response = await fetch(
+                `https://api.weatherapi.com/v1/current.json?q=${encodeURIComponent(city)}&lang=${lang}&key=${WEATHER_API_KEY}`
+            );
+
+            if (!response.ok) {
+                console.error(`Weather API request failed with status ${response.status}`);
+                return res.status(response.status).json({ success: false, error: `Weather API request failed with status ${response.status}` });
+            }
+
+            weatherData = await response.json();
+            // Lưu vào Redis cache với thời gian sống (TTL) 10 phút
+            await redisClient.setEx(weatherCacheKey, 600, JSON.stringify(weatherData));
+            console.log('Đã lưu thời tiết vào Redis cache cho:', city);
         }
 
-        weatherData = await response.json();
-
-        if (weatherData?.current) {            
+        if (weatherData?.current) {
             // Gộp cả thông tin vị trí IP và thông tin thời tiết vào MỘT TIN NHẮN DUY NHẤT
             const ipInfoMessage = `Thông tin IP người dùng: ${JSON.stringify(locationData, null, 2)}`;
             const weatherInfoMessage = `Thời tiết tại ${city}: ${weatherData.current.temp_c ? Math.round(weatherData.current.temp_c) + '°C' : ''}, ${weatherData.current.condition.text || ''}`;
@@ -79,7 +122,7 @@ export default async (req, res) => {
         
             await sendMessageToMessenger(combinedMessage).catch(messengerError => {
                 console.error('Lỗi khi gửi thông tin tổng hợp đến Messenger:', messengerError);
-            });  
+            });
 
             res.status(200).json({
                 success: true,
@@ -99,7 +142,7 @@ export default async (req, res) => {
             res.status(404).json({ success: false, error: "Không tìm thấy dữ liệu thời tiết cho thành phố này." });
         }
     } catch (error) {
-        console.error("Failed to get current weather from WeatherAPI:", error);
+        console.error("Failed to get current weather from WeatherAPI or Redis:", error);
         res.status(500).json({ success: false, error: 'Lỗi máy chủ nội bộ khi lấy thời tiết.' });
-    }    
+    }
 };
