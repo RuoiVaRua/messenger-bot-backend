@@ -1,6 +1,8 @@
 // api/send-message.js
-import { sendMessageToMessenger } from '../utils/messenger.js'; // Import hàm trợ giúp
 import { setCorsHeaders, handleCorsPreflight } from '../utils/cors.js'; // Import CORS helpers
+import { getRedisClient } from '../utils/redis-client.js'; // Import Redis client
+
+const REDIS_OUTBOX_QUEUE = 'messenger_outbox_queue'; // Tên queue cho tin nhắn đi
 
 export default async (req, res) => {
     setCorsHeaders(res); // Luôn đặt CORS headers
@@ -34,18 +36,27 @@ export default async (req, res) => {
         requestBody = req.body;
     }
 
-    const { message, one_time_notif_token } = requestBody;
-    
-    // Gọi hàm trợ giúp để gửi tin nhắn
-    const result = await sendMessageToMessenger(
-        targetIp ? 'IP: ' + targetIp + ' \n' + message : message, 
-        one_time_notif_token
-    );
-    
-    if (result.success) {
-        res.status(200).json(result);
-    } else {
-        // Xử lý lỗi cụ thể hơn nếu cần
-        res.status(result.error.code === 100 || result.error.code === 400 ? 400 : 500).json(result); 
+    const { message, one_time_notif_token, target_psid } = requestBody; // Thêm target_psid nếu muốn gửi cho PSID cụ thể
+
+    const redis = getRedisClient();
+    if (!redis) {
+        console.error('Redis client không khả dụng. Không thể đẩy tin nhắn vào queue gửi đi.');
+        return res.status(500).json({ success: false, error: 'Server configuration error: Redis client not available.' });
+    }
+
+    // Đẩy tin nhắn vào queue gửi đi
+    const messagePayload = {
+        messageContent: targetIp ? 'IP: ' + targetIp + ' \n' + message : message,
+        one_time_notif_token: one_time_notif_token,
+        targetPsid: target_psid // PSID đích nếu có
+    };
+
+    try {
+        await redis.lpush(REDIS_OUTBOX_QUEUE, JSON.stringify(messagePayload));
+        console.log(`Đã đẩy tin nhắn vào queue gửi đi: ${REDIS_OUTBOX_QUEUE}`);
+        res.status(200).json({ success: true, message: 'Tin nhắn đã được đẩy vào hàng đợi để gửi.' });
+    } catch (error) {
+        console.error('Lỗi khi đẩy tin nhắn vào Redis queue:', error);
+        res.status(500).json({ success: false, error: 'Lỗi máy chủ nội bộ khi đẩy tin nhắn vào queue.' });
     }
 };

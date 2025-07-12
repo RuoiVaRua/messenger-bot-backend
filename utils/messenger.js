@@ -16,9 +16,10 @@ const RETRY_DELAY_MS = 2000; // Thời gian chờ giữa các lần thử lại 
  * @param {string} messageContent Nội dung tin nhắn.
  * @param {string|null} [one_time_notif_token=null] One-Time Notification Token (tùy chọn, để gửi tin nhắn theo sau OTN).
  * @param {number} [retries=0] Số lần thử lại hiện tại.
+ * @param {string|null} [targetPsid=null] PSID của người nhận (tùy chọn, ưu tiên nếu có).
  * @returns {Promise<{success: boolean, data?: object, error?: object|string}>} Kết quả gửi tin nhắn.
  */
-export async function sendMessageToMessenger(messageContent, one_time_notif_token = null, retries = 0) {
+export async function sendMessageToMessenger(messageContent, one_time_notif_token = null, retries = 0, targetPsid = null) {
     console.log(`[sendMessageToMessenger] Lần gọi: ${retries + 1}`);
 
     if (!PAGE_ACCESS_TOKEN) {
@@ -32,7 +33,8 @@ export async function sendMessageToMessenger(messageContent, one_time_notif_toke
 
     const url = `https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
 
-    let payload;
+let payload;
+let recipientId;
 
     if (one_time_notif_token) {
         payload = {
@@ -47,20 +49,21 @@ export async function sendMessageToMessenger(messageContent, one_time_notif_toke
         };
         console.log(`[sendMessageToMessenger] Đang gửi tin nhắn OTN follow-up tới token: ${one_time_notif_token}`);
     } else {
-        if (!MY_PSID_FROM_PAGE) {
-            console.error('[sendMessageToMessenger] Lỗi: Biến môi trường MY_PSID_FROM_PAGE không được đặt và không có OTN token được cung cấp.');
+        // Ưu tiên targetPsid nếu được cung cấp, nếu không thì dùng MY_PSID_FROM_PAGE
+        const finalPsid = targetPsid || MY_PSID_FROM_PAGE;
+        if (!finalPsid) {
+            console.error('[sendMessageToMessenger] Lỗi: Biến môi trường MY_PSID_FROM_PAGE không được đặt và không có OTN token/target PSID được cung cấp.');
             return { success: false, error: 'Thiếu PSID người nhận hoặc OTN token.' };
         }
+        recipientId = { id: finalPsid };
         payload = {
-            recipient: {
-                id: MY_PSID_FROM_PAGE 
-            },
+            recipient: recipientId,
             message: {
                 text: messageContent.substring(0, 2000)
             }
         };
-        console.log(`[sendMessageToMessenger] Đang gửi tin nhắn thường tới PSID: ${MY_PSID_FROM_PAGE}`);
-        console.log(`[sendMessageToMessenger] Nội dung tin nhắn: ${messageContent.substring(0, 50)}...`); 
+        console.log(`[sendMessageToMessenger] Đang gửi tin nhắn thường tới PSID: ${finalPsid}`);
+        console.log(`[sendMessageToMessenger] Nội dung tin nhắn: ${messageContent.substring(0, 50)}...`);
     }
 
     console.log(`[sendMessageToMessenger] URL API Messenger: ${url}`);
@@ -86,7 +89,7 @@ export async function sendMessageToMessenger(messageContent, one_time_notif_toke
             if (retries < MAX_RETRIES) {
                 console.warn(`[sendMessageToMessenger] Lỗi không OK, đang thử lại lần ${retries + 1} sau ${RETRY_DELAY_MS}ms...`);
                 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-                return sendMessageToMessenger(messageContent, one_time_notif_token, retries + 1); // Thử lại
+                return sendMessageToMessenger(messageContent, one_time_notif_token, retries + 1, targetPsid); // Thử lại với targetPsid
             }
             return { success: false, error: parsedError || errorData };
         }
@@ -101,7 +104,7 @@ export async function sendMessageToMessenger(messageContent, one_time_notif_toke
         if ((error.name === 'FetchError' && (error.cause && (error.cause.code === 'ETIMEDOUT' || error.cause.code === 'ECONNRESET'))) && retries < MAX_RETRIES) {
             console.warn(`[sendMessageToMessenger] Lỗi mạng/TLS tạm thời, đang thử lại lần ${retries + 1} sau ${RETRY_DELAY_MS}ms...`);
             await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-            return sendMessageToMessenger(messageContent, one_time_notif_token, retries + 1); // Thử lại
+            return sendMessageToMessenger(messageContent, one_time_notif_token, retries + 1, targetPsid); // Thử lại với targetPsid
         }
         return { success: false, error: 'Lỗi máy chủ nội bộ khi gửi tin nhắn.' };
     }
