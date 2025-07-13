@@ -2,6 +2,7 @@
 // Hàm này sẽ được kích hoạt để xử lý các tin nhắn từ queue
 import { getRedisClient } from '../utils/redis-client.js';
 import { sendMessageToMessenger } from '../utils/messenger.js'; // Để gửi phản hồi
+import { elasticsearchClient } from '../utils/elasticsearch-client.js'; // Import Elasticsearch client
 import 'dotenv/config'; // Chỉ dùng khi chạy cục bộ với `vercel dev`
 
 const REDIS_MESSAGE_QUEUE = 'messenger_inbox_queue';
@@ -56,6 +57,23 @@ export default async (req, res) => {
             // TODO: Xử lý lỗi gửi tin nhắn (ví dụ: đẩy vào dead-letter queue)
         }
         // --- Kết thúc logic xử lý tin nhắn thực tế ---
+
+        // Lập chỉ mục tin nhắn vào Elasticsearch
+        try {
+            await elasticsearchClient.index({
+                index: 'messenger_messages', // Tên index của bạn
+                id: webhook_event.message.mid, // Sử dụng message ID làm ID tài liệu
+                document: {
+                    sender_psid: sender_psid,
+                    message_text: receivedMessage,
+                    timestamp: webhook_event.timestamp,
+                    // Thêm các trường khác nếu cần
+                },
+            });
+            console.log(`Đã lập chỉ mục tin nhắn ${webhook_event.message.mid} vào Elasticsearch.`);
+        } catch (error) {
+            console.error(`Lỗi khi lập chỉ mục tin nhắn vào Elasticsearch:`, error);
+        }
     }
 
     // Xử lý OTN tokens
