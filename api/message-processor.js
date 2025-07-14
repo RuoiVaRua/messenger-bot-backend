@@ -3,6 +3,8 @@
 import { getRedisClient } from '../utils/redis-client.js';
 import { sendMessageToMessenger } from '../utils/messenger.js'; // Để gửi phản hồi
 import { elasticsearchClient } from '../utils/elasticsearch-client.js'; // Import Elasticsearch client
+import { uploadFile, getSignedUrl } from '../utils/s3-client.js'; // Import S3 client
+import fetch from 'node-fetch'; // Để tải file từ URL
 import 'dotenv/config'; // Chỉ dùng khi chạy cục bộ với `vercel dev`
 
 const REDIS_MESSAGE_QUEUE = 'messenger_inbox_queue';
@@ -38,15 +40,59 @@ export default async (req, res) => {
         // --- Bắt đầu logic xử lý tin nhắn thực tế ở đây ---
         // Ví dụ: Phân tích tin nhắn, gọi API bên ngoài, truy vấn DB
         const receivedMessage = webhook_event.message?.text;
+        const attachments = webhook_event.message?.attachments;
         let responseMessage = `Bạn đã nói: "${receivedMessage}". Tôi đang học cách phản hồi!`;
+        const messageDataForElasticsearch = {
+            sender_psid: sender_psid,
+            timestamp: webhook_event.timestamp,
+        };
 
-        if (receivedMessage && receivedMessage.toLowerCase().includes('hello')) {
-            responseMessage = 'Chào bạn! Rất vui được gặp bạn.';
-        } else if (receivedMessage && receivedMessage.toLowerCase().includes('thời tiết')) {
-            // TODO: Gọi API thời tiết không đồng bộ
-            responseMessage = 'Tôi chưa thể kiểm tra thời tiết lúc này. Vui lòng thử lại sau.';
+        if (receivedMessage) {
+            messageDataForElasticsearch.message_text = receivedMessage;
+            if (receivedMessage.toLowerCase().includes('hello')) {
+                responseMessage = 'Chào bạn! Rất vui được gặp bạn.';
+            } else if (receivedMessage.toLowerCase().includes('thời tiết')) {
+                // TODO: Gọi API thời tiết không đồng bộ
+                responseMessage = 'Tôi chưa thể kiểm tra thời tiết lúc này. Vui lòng thử lại sau.';
+            }
+            // ... thêm các logic xử lý khác ...
         }
-        // ... thêm các logic xử lý khác ...
+
+        if (attachments && attachments.length > 0) {
+            console.log('Đang xử lý file đính kèm...');
+            messageDataForElasticsearch.attachments = [];
+            for (const attachment of attachments) {
+                if (attachment.type === 'image' || attachment.type === 'file' || attachment.type === 'video' || attachment.type === 'audio') {
+                    const attachmentUrl = attachment.payload.url;
+                    const attachmentType = attachment.type;
+                    const fileExtension = attachmentUrl.split('.').pop().split('?')[0]; // Lấy phần mở rộng file
+                    const key = `attachments/${sender_psid}/${webhook_event.message.mid}_${Date.now()}.${fileExtension}`;
+
+                    try {
+                        const response = await fetch(attachmentUrl);
+                        if (!response.ok) {
+                            throw new Error(`Failed to fetch attachment from ${attachmentUrl}: ${response.statusText}`);
+                        }
+                        const buffer = await response.buffer();
+                        const uploadResult = await uploadFile(key, buffer, attachment.payload.content_type || `application/${fileExtension}`);
+                        const signedUrl = getSignedUrl(key); // Lấy URL có chữ ký để truy cập
+
+                        messageDataForElasticsearch.attachments.push({
+                            type: attachmentType,
+                            s3_key: key,
+                            s3_location: uploadResult.Location,
+                            signed_url: signedUrl,
+                            original_url: attachmentUrl,
+                        });
+                        console.log(`Đã tải lên file đính kèm ${key} lên S3/Minio.`);
+                        responseMessage += `\nĐã nhận file đính kèm loại: ${attachmentType}. URL: ${signedUrl}`;
+                    } catch (error) {
+                        console.error(`Lỗi khi xử lý file đính kèm ${attachmentUrl}:`, error);
+                        responseMessage += `\nLỗi khi xử lý file đính kèm loại: ${attachmentType}.`;
+                    }
+                }
+            }
+        }
 
         // Gửi phản hồi lại cho người dùng (có thể đẩy vào một queue gửi đi riêng)
         const sendResult = await sendMessageToMessenger(responseMessage, null, 0, sender_psid); // Truyền PSID người gửi
@@ -63,12 +109,7 @@ export default async (req, res) => {
             await elasticsearchClient.index({
                 index: 'messenger_messages', // Tên index của bạn
                 id: webhook_event.message.mid, // Sử dụng message ID làm ID tài liệu
-                document: {
-                    sender_psid: sender_psid,
-                    message_text: receivedMessage,
-                    timestamp: webhook_event.timestamp,
-                    // Thêm các trường khác nếu cần
-                },
+                document: messageDataForElasticsearch,
             });
             console.log(`Đã lập chỉ mục tin nhắn ${webhook_event.message.mid} vào Elasticsearch.`);
         } catch (error) {
