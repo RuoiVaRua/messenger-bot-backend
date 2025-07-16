@@ -1,0 +1,34 @@
+name: CI/CD Backend App
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Docker image with Build Args
+        run: |
+          docker build \
+            --build-arg PAGE_ACCESS_TOKEN=${{ secrets.PAGE_ACCESS_TOKEN }} \
+            --build-arg VERIFY_TOKEN=${{ secrets.VERIFY_TOKEN }} \
+            --build-arg PAGE_SCOPED_USER_ID=${{ secrets.PAGE_SCOPED_USER_ID }} \
+            --build-arg IP_INFO_KEY=${{ secrets.IP_INFO_KEY }} \
+            --build-arg WEATHER_API_KEY=${{ secrets.WEATHER_API_KEY }} \
+            -t backend-app:latest .
+
+      - name: Stop and remove existing container
+        run: |
+          docker stop backend-app-container || true
+          docker rm backend-app-container || true
+
+      - name: Run new container
+        run: docker run -d -p 3333:3000 --name backend-app-container --restart unless-stopped backend-app:latest
+
+      - name: Clean up old images
+        run: docker image prune -f
