@@ -48,6 +48,14 @@ export default async (req, res) => {
         if (locationResponse.ok && (locationData.city || locationData.region)) { // Kiểm tra success !== false để bao gồm trường hợp ipinfo trả về ok nhưng không tìm thấy city
             city = locationData.city || locationData.region;
             console.log('Đã lấy vị trí từ ipinfo.io:', city);
+
+            city = city.toLowerCase();
+            if (
+                !['hanoi', 'ha noi', 'saigon', 'sai gon', 'da nang'].includes(city) && 
+                !city.includes('ho chi minh')
+            ) {
+                city = 'Hanoi'; // Nếu không phải là các thành phố lớn, sử dụng mặc định
+            }
         } else {
             console.warn('Không thể lấy vị trí từ ipinfo.io, sử dụng vị trí mặc định:', city, 'Lý do:', locationData.error || 'không rõ.');
         }
