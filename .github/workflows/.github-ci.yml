@@ -2,7 +2,7 @@ name: CI/CD Backend App
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "serverless", "serverless-deployment-on-personal-server" ]
 
 jobs:
   build-and-deploy:
