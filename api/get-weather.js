@@ -40,6 +40,8 @@ export default async (req, res) => {
         // Gọi IPinfo API trực tiếp từ hàm này để lấy vị trí
         const locationResponse = await fetch(
             targetIp.includes('::1') // Kiểm tra nếu là localhost
+            || targetIp.includes('192.168.1.1') // Hoặc IP nội bộ khác, 192.168.1.1 là modem và DNS server
+            || targetIp.includes('192.168.0.1')
                 ? `https://ipinfo.io/json?token=${IP_INFO_KEY}` // Sử dụng IPinfo API với localhost
                 : `https://ipinfo.io/${targetIp}/json?token=${IP_INFO_KEY}`
         );        
