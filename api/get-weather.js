@@ -50,11 +50,18 @@ export default async (req, res) => {
             console.log('Đã lấy vị trí từ ipinfo.io:', city);
 
             city = city.toLowerCase();
+            const region = locationData.region ? locationData.region.toLowerCase() : '';
             if (
+                locationData.country === 'VN' &&
                 !['hanoi', 'ha noi', 'saigon', 'sai gon', 'da nang'].includes(city) && 
                 !city.includes('ho chi minh')
             ) {
-                city = 'Hanoi'; // Nếu không phải là các thành phố lớn, sử dụng mặc định
+                if (
+                    ['hanoi', 'ha noi', 'saigon', 'sai gon', 'da nang'].includes(region) ||
+                    region.includes('ho chi minh')
+                ) {
+                    city = region;
+                } else city = 'Hanoi'; // Nếu không tìm thấy thành phố, sử dụng mặc định là Hanoi
             }
         } else {
             console.warn('Không thể lấy vị trí từ ipinfo.io, sử dụng vị trí mặc định:', city, 'Lý do:', locationData.error || 'không rõ.');
