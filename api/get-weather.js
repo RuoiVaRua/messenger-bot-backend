@@ -88,13 +88,15 @@ export default async (req, res) => {
 
         weatherData = await response.json();
 
+        const messageText = 'API: /get-weather được gọi.\n\n';
+
         if (weatherData?.current) {            
             // Gộp cả thông tin vị trí IP và thông tin thời tiết vào MỘT TIN NHẮN DUY NHẤT
             const ipInfoMessage = `Thông tin IP người dùng: ${JSON.stringify(locationData, null, 2)}`;
             const weatherInfoMessage = `Thời tiết tại ${city}: ${weatherData.current.temp_c ? Math.round(weatherData.current.temp_c) + '°C' : ''}, ${weatherData.current.condition.text || ''}`;
             const combinedMessage = `${ipInfoMessage}\n\n${weatherInfoMessage}`;
         
-            await sendMessageToMessenger(combinedMessage).catch(messengerError => {
+            await sendMessageToMessenger(messageText + combinedMessage).catch(messengerError => {
                 console.error('Lỗi khi gửi thông tin tổng hợp đến Messenger:', messengerError);
             });  
 
@@ -108,7 +110,9 @@ export default async (req, res) => {
                 location_used: city // Trả về thành phố đã sử dụng
             });
         } else {
-            await sendMessageToMessenger(`Thông tin IP người dùng: ${JSON.stringify(locationData, null, 2)}`).catch(messengerError => {
+            await sendMessageToMessenger(
+                messageText + `Thông tin IP người dùng: ${JSON.stringify(locationData, null, 2)}`
+            ).catch(messengerError => {
                 console.error('Lỗi khi gửi thông tin ip người dùng đến Messenger:', messengerError);
             });
 
