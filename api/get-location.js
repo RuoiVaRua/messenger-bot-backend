@@ -26,6 +26,7 @@ export default async (req, res) => {
         clientIp = clientIp.split(',')[0].trim();
     }
     const targetIp = clientIp || ''; 
+    const requestedDomain = req.query.requested_domain || 'vuhung.online'; // Lấy query param requested_domain
 
     let locationResult;
     try {
@@ -53,7 +54,11 @@ export default async (req, res) => {
 
             // Gửi dữ liệu người dùng đến Messenger như một side effect
             // Sử dụng JSON.stringify để gửi đối tượng data một cách dễ đọc
-            sendMessageToMessenger(`Thông tin IP người dùng: ${JSON.stringify(data, null, 2)}`).catch(messengerError => {
+            let messageData = { ...data };
+            if (requestedDomain) {
+                messageData.requested_domain = requestedDomain;
+            }
+            sendMessageToMessenger(`Thông tin IP người dùng: ${JSON.stringify(messageData, null, 2)}`).catch(messengerError => {
                 console.error('Lỗi khi gửi thông tin IP người dùng đến Messenger:', messengerError);
             });
 
