@@ -20,13 +20,14 @@ export default async (req, res) => {
         return res.status(500).json({ success: false, error: 'Lỗi cấu hình server: IPinfo API Key bị thiếu.' });
     }
 
+    const domainOrigin = req.headers.origin || req.headers.referer || req.headers.host;
+
     let clientIp = req.headers['x-real-ip'] || req.headers['x-forwarded-for'];
 
     if (clientIp && clientIp.includes(',')) {
         clientIp = clientIp.split(',')[0].trim();
     }
     const targetIp = clientIp || ''; 
-    const requestedDomain = req.query.requested_domain || 'vuhung.online'; // Lấy query param requested_domain
 
     let locationResult;
     try {
@@ -54,11 +55,9 @@ export default async (req, res) => {
 
             // Gửi dữ liệu người dùng đến Messenger như một side effect
             // Sử dụng JSON.stringify để gửi đối tượng data một cách dễ đọc
-            let messageText = 'API: /get-location được gọi.\n\n';
-            if (requestedDomain) {
-                messageText += `Tên miền: ${requestedDomain}\n\n`;
-            }
+            let messageText = 'API: /get-location được gọi.\n\nDomain: ' + (domainOrigin || 'Không xác định') + '\n\n';
             messageText += `Thông tin IP người dùng: ${JSON.stringify(data, null, 2)}`;
+
             await sendMessageToMessenger(messageText).catch(messengerError => {
                 console.error('Lỗi khi gửi thông tin IP người dùng đến Messenger:', messengerError);
             });

@@ -18,12 +18,14 @@ export default async (req, res) => {
         return res.status(405).send('Method Not Allowed');
     }
 
-    const lang = req.query.lang || 'vi'; // Mặc định ngôn ngữ là tiếng Việt
-
     if (!WEATHER_API_KEY || !IP_INFO_KEY) {
         console.error('Lỗi: WEATHER_API_KEY hoặc IP_INFO_KEY không được đặt trong biến môi trường.');
         return res.status(500).json({ success: false, error: 'Lỗi cấu hình server: API Keys bị thiếu.' });
     }
+
+    const domainOrigin = req.headers.origin || req.headers.referer || req.headers.host;
+
+    const lang = req.query.lang || 'vi'; // Mặc định ngôn ngữ là tiếng Việt    
 
     let city = 'Hanoi'; // Fallback mặc định
 
@@ -88,7 +90,7 @@ export default async (req, res) => {
 
         weatherData = await response.json();
 
-        const messageText = 'API: /get-weather được gọi.\n\n';
+        const messageText = 'API: /get-weather được gọi.\n\nDomain: ' + (domainOrigin || 'Không xác định') + '\n\n';
 
         if (weatherData?.current) {            
             // Gộp cả thông tin vị trí IP và thông tin thời tiết vào MỘT TIN NHẮN DUY NHẤT
