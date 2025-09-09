@@ -20,7 +20,7 @@ export default async (req, res) => {
         return res.status(500).json({ success: false, error: 'Lỗi cấu hình server: IPinfo API Key bị thiếu.' });
     }
 
-    const domainOrigin = req.headers.origin || req.headers.referer || req.headers.host;
+    const domainOrigin = req.headers.origin || req.headers.referer || req.headers.host || 'Không xác định';
     console.log('========== req.headers.origin ', req.headers.origin);
     console.log('========== req.headers.referer ', req.headers.referer);
     console.log('========== req.headers.host ', req.headers.host);
@@ -58,7 +58,7 @@ export default async (req, res) => {
 
             // Gửi dữ liệu người dùng đến Messenger như một side effect
             // Sử dụng JSON.stringify để gửi đối tượng data một cách dễ đọc
-            let messageText = 'API: /get-location được gọi.\n\nDomain: ' + (domainOrigin || 'Không xác định') + '\n\n';
+            let messageText = 'API: /get-location được gọi.\n\nDomain: ' + domainOrigin + '\n\n';
             messageText += `Thông tin IP người dùng: ${JSON.stringify(data, null, 2)}`;
 
             await sendMessageToMessenger(messageText).catch(messengerError => {

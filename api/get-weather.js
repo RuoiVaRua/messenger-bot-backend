@@ -23,7 +23,10 @@ export default async (req, res) => {
         return res.status(500).json({ success: false, error: 'Lỗi cấu hình server: API Keys bị thiếu.' });
     }
 
-    const domainOrigin = req.headers.origin || req.headers.referer || req.headers.host;
+    const domainOrigin = req.headers.origin || req.headers.referer || req.headers.host || 'Không xác định';
+    console.log('========== req.headers.origin ', req.headers.origin);
+    console.log('========== req.headers.referer ', req.headers.referer);
+    console.log('========== req.headers.host ', req.headers.host);    
 
     const lang = req.query.lang || 'vi'; // Mặc định ngôn ngữ là tiếng Việt    
 
@@ -90,7 +93,7 @@ export default async (req, res) => {
 
         weatherData = await response.json();
 
-        const messageText = 'API: /get-weather được gọi.\n\nDomain: ' + (domainOrigin || 'Không xác định') + '\n\n';
+        const messageText = 'API: /get-weather được gọi.\n\nDomain: ' + domainOrigin + '\n\n';
 
         if (weatherData?.current) {            
             // Gộp cả thông tin vị trí IP và thông tin thời tiết vào MỘT TIN NHẮN DUY NHẤT
