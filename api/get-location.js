@@ -21,6 +21,9 @@ export default async (req, res) => {
     }
 
     const domainOrigin = req.headers.origin || req.headers.referer || req.headers.host;
+    console.log('========== req.headers.origin ', req.headers.origin);
+    console.log('========== req.headers.referer ', req.headers.referer);
+    console.log('========== req.headers.host ', req.headers.host);
 
     let clientIp = req.headers['x-real-ip'] || req.headers['x-forwarded-for'];
 
