@@ -23,10 +23,7 @@ export default async (req, res) => {
         return res.status(500).json({ success: false, error: 'Lỗi cấu hình server: API Keys bị thiếu.' });
     }
 
-    const domainOrigin = req.headers.origin || req.headers.referer || req.headers.host || 'Không xác định';
-    console.log('========== req.headers.origin ', req.headers.origin);
-    console.log('========== req.headers.referer ', req.headers.referer);
-    console.log('========== req.headers.host ', req.headers.host);    
+    const domainOrigin = req.headers.origin || req.headers.referer || 'Không xác định';
 
     const lang = req.query.lang || 'vi'; // Mặc định ngôn ngữ là tiếng Việt    
 

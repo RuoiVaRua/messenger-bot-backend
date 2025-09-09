@@ -20,10 +20,7 @@ export default async (req, res) => {
         return res.status(500).json({ success: false, error: 'Lỗi cấu hình server: IPinfo API Key bị thiếu.' });
     }
 
-    const domainOrigin = req.headers.origin || req.headers.referer || req.headers.host || 'Không xác định';
-    console.log('========== req.headers.origin ', req.headers.origin);
-    console.log('========== req.headers.referer ', req.headers.referer);
-    console.log('========== req.headers.host ', req.headers.host);
+    const domainOrigin = req.headers.origin || req.headers.referer || 'Không xác định';
 
     let clientIp = req.headers['x-real-ip'] || req.headers['x-forwarded-for'];
 
