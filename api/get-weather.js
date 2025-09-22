@@ -32,7 +32,10 @@ export default async (req, res) => {
     let locationData = {};
     try {
         // Lấy IP của người dùng cuối. Vercel thường cung cấp qua x-real-ip hoặc x-forwarded-for.
-        let clientIp = req.query.client_ip || req.headers['x-real-ip'] || req.headers['x-forwarded-for'];
+        let clientIp = req.query.client_ip?.toString().trim()
+            || req.headers['x-real-ip']?.toString().trim() 
+            || req.headers['x-forwarded-for']?.toString().split(',')[0].trim()
+            || req.headers['cf-connecting-ip']?.toString().trim();
 
         if (clientIp && clientIp.includes(',')) {
             clientIp = clientIp.split(',')[0].trim();
