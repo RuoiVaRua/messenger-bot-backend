@@ -2,7 +2,7 @@
   "version": 2,
   "functions": {
     "api/**/*.js": {
-      "runtime": "@vercel/node@2.0.0" 
+      "runtime": "@vercel/node@2.0.0"
     }
   },
   "routes": [
@@ -25,6 +25,16 @@
     {
       "src": "/api/get-html",
       "dest": "api/get-html.js"
+    },
+    {
+      "src": "/api/trigger-weather-update",
+      "dest": "api/trigger-weather-update.js"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/trigger-weather-update",
+      "schedule": "0 0 * * *"
     }
   ]
 }
