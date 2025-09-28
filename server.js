@@ -9,7 +9,8 @@ import sendMessageHandler from './api/send-message.js';
 import getLocationHandler from './api/get-location.js';
 import getWeatherHandler from './api/get-weather.js';
 import getHtmlHandler from './api/get-html.js';
-
+import sendNotificationHandler from './api/send-notification.js';
+import ablyTokenHandler from './api/ably-token.js';
 // Nạp các biến môi trường từ file .env (quan trọng cho local dev)
 dotenv.config();
 
@@ -27,7 +28,8 @@ app.use('/send-message', sendMessageHandler);
 app.use('/get-location', getLocationHandler);
 app.use('/get-weather', getWeatherHandler);
 app.use('/get-html', getHtmlHandler);
-
+app.use('/send-notification', sendNotificationHandler);
+app.use('/ably-token', ablyTokenHandler);
 // Route gốc để kiểm tra server có hoạt động không
 app.get('/', (req, res) => {
     res.send('Backend server is running!');
