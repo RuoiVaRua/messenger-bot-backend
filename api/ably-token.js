@@ -18,8 +18,8 @@ const handler = async (request, response) => {
       const ably = new Ably.Realtime(ABLY_API_KEY);
       const tokenRequest = await ably.auth.createTokenRequest({
         capability: {
-          "main-channel": ["subscribe"], // Chỉ cho phép subscribe trên kênh 'main-channel'
-          "user-*-channel": ["subscribe"], // Cho phép subscribe trên các kênh user cụ thể
+          "access-log": ["subscribe"], // Chỉ cho phép subscribe trên kênh 'access-log'
+          "page-access": ["subscribe"], // Cho phép subscribe trên các kênh user cụ thể
         },
         // userId: 'user-123', // Tùy chọn: Gán userId cho token
         // ttl: 60 * 60 * 1000, // Tùy chọn: Thời gian sống của token (1 giờ)
@@ -37,4 +37,4 @@ const handler = async (request, response) => {
   }
 };
 
-export default allowCors(handler);
+export default handler;
