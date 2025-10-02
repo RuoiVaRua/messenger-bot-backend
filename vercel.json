@@ -29,6 +29,14 @@
     {
       "src": "/api/trigger-weather-update",
       "dest": "api/trigger-weather-update.js"
+    },
+    {
+      "src": "/api/ably-token",
+      "dest": "api/ably-token.js"
+    },
+    {
+      "src": "/api/send-notification",
+      "dest": "api/send-notification.js"
     }
   ],
   "crons": [
