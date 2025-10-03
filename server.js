@@ -1,6 +1,8 @@
 // server.js
 import express from 'express';
 import dotenv from 'dotenv';
+import { createServer } from 'http'; // Import createServer từ http
+import { initializeChatService } from './services/chatService.js'; // Import chatService
 
 // Import các function từ thư mục api của bạn
 // Lưu ý: vì package.json có "type": "module", chúng ta cần thêm .js ở cuối
@@ -16,6 +18,12 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000; // Server sẽ chạy ở cổng 3000 bên trong container
+
+// Tạo HTTP server từ Express app
+const httpServer = createServer(app);
+
+// Khởi tạo và cấu hình Socket.io server thông qua chatService
+initializeChatService(httpServer);
 
 // Middleware để parse JSON body
 app.use(express.json());
@@ -36,6 +44,6 @@ app.get('/', (req, res) => {
 });
 
 // Khởi động server
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`);
 });
