@@ -106,6 +106,7 @@ export default async (req, res) => {
             });  
 
             res.status(200).json({
+                ipAddress: clientIp || 'Không xác định',
                 success: true,
                 weather: {
                     temp_c: weatherData.current.temp_c ? Math.round(weatherData.current.temp_c) + '°C' : '',
