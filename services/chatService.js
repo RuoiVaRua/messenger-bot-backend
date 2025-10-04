@@ -1,12 +1,6 @@
 import mongoose from 'mongoose';
 import { Server } from 'socket.io';
 
-// Kết nối MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/messenger_bot_chat';
-mongoose.connect(MONGODB_URI)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.error('MongoDB connection error:', err));
-
 // Định nghĩa Message Schema và Model
 const messageSchema = new mongoose.Schema({
     sender: String,
@@ -17,6 +11,11 @@ const messageSchema = new mongoose.Schema({
 const Message = mongoose.model('Message', messageSchema);
 
 export const initializeChatService = (httpServer) => {
+    // Kết nối MongoDB
+    mongoose.connect(process.env.MONGODB_URI)
+        .then(() => console.log('Connected to MongoDB'))
+        .catch(err => console.error('MongoDB connection error:', err));
+
     const io = new Server(httpServer, {
         cors: {
             origin: "*", // Cho phép tất cả các origin, bạn nên cấu hình cụ thể trong production
