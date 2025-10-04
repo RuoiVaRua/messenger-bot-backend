@@ -30,17 +30,19 @@ export default async (req, res) => {
     let city = 'Hanoi'; // Fallback mặc định
 
     let locationData = {};
-    try {
-        // Lấy IP của người dùng cuối. Vercel thường cung cấp qua x-real-ip hoặc x-forwarded-for.
-        let clientIp = req.query.client_ip?.toString().trim()
-            || req.headers['x-real-ip']?.toString().trim() 
-            || req.headers['x-forwarded-for']?.toString().split(',')[0].trim()
-            || req.headers['cf-connecting-ip']?.toString().trim();
+    
+    // Lấy IP của người dùng cuối. Vercel thường cung cấp qua x-real-ip hoặc x-forwarded-for.
+    let clientIp = req.query.client_ip?.toString().trim()
+        || req.headers['x-real-ip']?.toString().trim() 
+        || req.headers['x-forwarded-for']?.toString().split(',')[0].trim()
+        || req.headers['cf-connecting-ip']?.toString().trim();
 
-        if (clientIp && clientIp.includes(',')) {
-            clientIp = clientIp.split(',')[0].trim();
-        }
-        const targetIp = clientIp || ''; // Hoặc một IP mặc định nếu không xác định được
+    if (clientIp && clientIp.includes(',')) {
+        clientIp = clientIp.split(',')[0].trim();
+    }
+    const targetIp = clientIp || ''; // Hoặc một IP mặc định nếu không xác định được
+    
+    try {
 
         // Gọi IPinfo API trực tiếp từ hàm này để lấy vị trí
         const locationResponse = await fetch(
