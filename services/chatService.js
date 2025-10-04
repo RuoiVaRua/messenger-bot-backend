@@ -26,10 +26,19 @@ export const initializeChatService = (httpServer) => {
 
     // Xử lý kết nối Socket.io
     io.on('connection', (socket) => {
-        console.log('A user connected:', socket.id);
+        const clientIp = socket.request.connection.remoteAddress;
+        console.log(`A user connected: ${socket.id} from IP: ${clientIp}`);
 
         // Lắng nghe sự kiện 'joinRoom'
         socket.on('joinRoom', async (room) => {
+            // Rời khỏi các phòng cũ trước khi tham gia phòng mới (trừ phòng mặc định của socket)
+            socket.rooms.forEach(r => {
+                if (r !== socket.id) {
+                    socket.leave(r);
+                    console.log(`User ${socket.id} left room: ${r}`);
+                }
+            });
+
             socket.join(room);
             console.log(`User ${socket.id} joined room: ${room}`);
 
@@ -44,15 +53,23 @@ export const initializeChatService = (httpServer) => {
 
         // Lắng nghe sự kiện 'sendMessage'
         socket.on('sendMessage', async (data) => {
-            const { sender, receiver, content } = data;
-            console.log(`Message from ${sender} to ${receiver}: ${content}`);
+            const { room, content } = data; // Client sẽ gửi cả room và content
+            if (!room) {
+                console.error('Error: Room not specified in sendMessage event.');
+                return;
+            }
+            console.log(`Message from ${clientIp} to room ${room}: ${content}`);
 
             // Lưu tin nhắn vào MongoDB
-            const newMessage = new Message({ sender, receiver, content });
+            const newMessage = new Message({
+                sender: clientIp,
+                receiver: room, // Receiver là phòng mà client đã chọn
+                content: content
+            });
             try {
                 await newMessage.save();
                 // Phát tin nhắn đến tất cả các client trong phòng chat
-                io.to(receiver).emit('receiveMessage', newMessage);
+                io.to(room).emit('receiveMessage', newMessage);
             } catch (error) {
                 console.error('Error saving message to DB:', error);
             }
