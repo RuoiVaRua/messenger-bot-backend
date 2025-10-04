@@ -22,7 +22,10 @@ export default async (req, res) => {
 
     // kiểm tra content-type có phải JSON hay là text/plain
     // text/plain được gửi ở request navigator.sendBeacon phía front-end (để tránh preflight OPTIONS request khi gửi JSON)
-    if (req.headers['content-type'] && req.headers['content-type'].includes('text/plain')) {
+    if (!req.body) {
+        return res.status(400).json({ success: false, error: 'Empty request body' });
+    }    
+    else if (req.headers['content-type'] && req.headers['content-type'].includes('text/plain')) {
         try {
             // Đảm bảo req.body là một chuỗi trước khi phân tích cú pháp
             requestBody = JSON.parse(typeof req.body === 'string' ? req.body : req.body.toString());

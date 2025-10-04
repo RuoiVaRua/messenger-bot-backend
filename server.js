@@ -32,14 +32,14 @@ app.use(express.urlencoded({ extended: true }));
 
 // --- Định nghĩa các routes giống như trong vercel.json ---
 // Express sẽ nhận request và chuyển cho handler tương ứng
-app.use('/webhook', webhookHandler);
-app.use('/send-message', sendMessageHandler);
-app.use('/get-location', getLocationHandler);
-app.use('/get-weather', getWeatherHandler);
-app.use('/get-html', getHtmlHandler);
-app.use('/trigger-weather-update', triggerWeatherUpdate);
-app.use('/ably-token', ablyTokenHandler);
-app.use('/send-notification', sendNotificationHandler);
+app.use('/api/webhook', webhookHandler);
+app.use('/api/send-message', sendMessageHandler);
+app.use('/api/get-location', getLocationHandler);
+app.use('/api/get-weather', getWeatherHandler);
+app.use('/api/get-html', getHtmlHandler);
+app.use('/api/trigger-weather-update', triggerWeatherUpdate);
+app.use('/api/ably-token', ablyTokenHandler);
+app.use('/api/send-notification', sendNotificationHandler);
 // Route gốc để kiểm tra server có hoạt động không
 app.get('/', (req, res) => {
     res.send('Backend server is running!');
