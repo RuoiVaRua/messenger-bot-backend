@@ -25,7 +25,17 @@ export const initializeChatService = (httpServer) => {
 
     // Xử lý kết nối Socket.io
     io.on('connection', (socket) => {
-        const clientIp = socket.request.connection.remoteAddress;
+        let clientIp = socket.request.headers['x-real-ip']?.toString().trim() 
+            || socket.request.headers['x-forwarded-for']?.toString().split(',')[0].trim()
+            || socket.request.headers['cf-connecting-ip']?.toString().trim();
+
+        if (clientIp && clientIp.includes(',')) {
+            clientIp = clientIp.split(',')[0].trim();
+        }
+
+        // Fallback to remoteAddress if no proxy headers are available
+        clientIp = clientIp || socket.request.connection.remoteAddress;
+
         console.log(`A user connected: ${socket.id} from IP: ${clientIp}`);
 
         // Lắng nghe sự kiện 'joinRoom'
