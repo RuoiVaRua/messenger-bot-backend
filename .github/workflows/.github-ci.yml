@@ -14,7 +14,7 @@ jobs:
 
       - name: Build Docker image with Build Args
         run: |
-          docker build \
+          docker build . \
             --build-arg PAGE_ACCESS_TOKEN=${{ secrets.PAGE_ACCESS_TOKEN }} \
             --build-arg VERIFY_TOKEN=${{ secrets.VERIFY_TOKEN }} \
             --build-arg PAGE_SCOPED_USER_ID=${{ secrets.PAGE_SCOPED_USER_ID }} \
@@ -26,7 +26,7 @@ jobs:
             --build-arg PUSHER_CLUSTER=${{ secrets.PUSHER_CLUSTER }} \
             --build-arg ABLY_API_KEY=${{ secrets.ABLY_API_KEY }} \
             --build-arg MONGODB_URI=${{ secrets.MONGODB_URI }} \
-            -t backend-app:latest .
+            -t backend-app:latest
 
       - name: Stop and remove existing container
         run: |
