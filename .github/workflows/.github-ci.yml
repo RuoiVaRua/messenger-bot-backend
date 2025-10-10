@@ -14,7 +14,7 @@ jobs:
 
       - name: Build Docker image with Build Args
         run: |
-          docker build . \
+          docker buildx build . \
             --build-arg PAGE_ACCESS_TOKEN=${{ secrets.PAGE_ACCESS_TOKEN }} \
             --build-arg VERIFY_TOKEN=${{ secrets.VERIFY_TOKEN }} \
             --build-arg PAGE_SCOPED_USER_ID=${{ secrets.PAGE_SCOPED_USER_ID }} \
