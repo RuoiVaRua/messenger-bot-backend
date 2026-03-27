@@ -1,5 +1,6 @@
 // api/send-message.js
 import { sendMessageToMessenger } from '../utils/messenger.js'; // Import hàm trợ giúp
+import { sendMessageToTelegram } from '../utils/telegram.js'; // Import Telegram helper
 import { setCorsHeaders, handleCorsPreflight } from '../utils/cors.js'; // Import CORS helpers
 
 export default async (req, res) => {
@@ -44,6 +45,13 @@ export default async (req, res) => {
         targetIp ? 'IP: ' + targetIp + ' \n' + message : message, 
         one_time_notif_token
     );
+
+    // Gửi tin nhắn tới Telegram Robot nữa
+    try {
+        await sendMessageToTelegram(targetIp ? 'IP: ' + targetIp + ' \n' + message : message);
+    } catch (error) {
+        console.error('Lỗi khi gửi tới Telegram:', error);
+    }
     
     if (result.success) {
         res.status(200).json(result);

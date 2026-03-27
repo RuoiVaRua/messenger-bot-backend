@@ -14,6 +14,7 @@ import getHtmlHandler from './api/get-html.js';
 import triggerWeatherUpdate from './api/trigger-weather-update.js';
 import ablyTokenHandler from './api/ably-token.js';
 import sendNotificationHandler from './api/send-notification.js';
+import telegramWebhookHandler from './api/telegram-webhook.js';
 // Nạp các biến môi trường từ file .env (quan trọng cho local dev)
 dotenv.config();
 
@@ -40,6 +41,7 @@ app.use('/api/get-html', getHtmlHandler);
 app.use('/api/trigger-weather-update', triggerWeatherUpdate);
 app.use('/api/ably-token', ablyTokenHandler);
 app.use('/api/send-notification', sendNotificationHandler);
+app.use('/api/telegram-webhook', telegramWebhookHandler);
 // Route gốc để kiểm tra server có hoạt động không
 app.get('/', (req, res) => {
     res.send('Backend server is running!');
