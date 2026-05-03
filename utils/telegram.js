@@ -1,19 +1,25 @@
 // utils/telegram.js
 // Hàm tiện ích để gửi tin nhắn đến Telegram Bot API
 
+import 'dotenv/config';
 import fetch from 'node-fetch';
 
-export async function sendMessageToTelegram(messageContent) {
-    const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-    const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
+/**
+ * Gửi tin nhắn đến Telegram Bot API.
+ * @param {string} messageContent Nội dung tin nhắn.
+ * @returns {Promise<{success: boolean, data?: object, error?: any}>} Kết quả gửi tin nhắn.
+ */
+export async function sendMessageToTelegram(messageContent) {
     if (!TELEGRAM_BOT_TOKEN) {
-        console.error('[sendMessageToTelegram] Missing TELEGRAM_BOT_TOKEN.');
-        return { success: false, error: 'Missing TELEGRAM_BOT_TOKEN.' };
+        console.error('[sendMessageToTelegram] Lỗi: Biến môi trường TELEGRAM_BOT_TOKEN không được đặt.');
+        return { success: false, error: 'Thiếu TELEGRAM_BOT_TOKEN.' };
     }
     if (!TELEGRAM_CHAT_ID) {
-        console.error('[sendMessageToTelegram] Missing TELEGRAM_CHAT_ID.');
-        return { success: false, error: 'Missing TELEGRAM_CHAT_ID.' };
+        console.error('[sendMessageToTelegram] Lỗi: Biến môi trường TELEGRAM_CHAT_ID không được đặt.');
+        return { success: false, error: 'Thiếu TELEGRAM_CHAT_ID.' };
     }
     if (!messageContent) {
         return { success: false, error: 'Nội dung tin nhắn trống.' };
