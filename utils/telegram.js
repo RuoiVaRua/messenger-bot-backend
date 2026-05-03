@@ -7,8 +7,6 @@ export async function sendMessageToTelegram(messageContent) {
     const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
     const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-    console.log(`[sendMessageToTelegram] Called. TOKEN set: ${!!TELEGRAM_BOT_TOKEN}, CHAT_ID set: ${!!TELEGRAM_CHAT_ID}`);
-
     if (!TELEGRAM_BOT_TOKEN) {
         console.error('[sendMessageToTelegram] Missing TELEGRAM_BOT_TOKEN.');
         return { success: false, error: 'Missing TELEGRAM_BOT_TOKEN.' };
