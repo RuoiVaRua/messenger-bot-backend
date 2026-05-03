@@ -13,7 +13,8 @@ export default async function (req, res) {
         return res.status(405).json({ error: 'Chỉ chấp nhận phương thức GET' });
     }
 
-    const { url } = req.query;
+    const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const url = parsedUrl.searchParams.get('url');
 
     if (!url) {
         return res.status(400).json({ error: 'Thiếu tham số URL' });

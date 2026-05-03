@@ -25,8 +25,9 @@ export default async function (request, response) {
 		}
 
 		try {
-			let clientIp = request.query.client_ip?.toString().trim()
-				|| request.headers['x-real-ip']?.toString().trim() 
+			const parsedUrl = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
+			let clientIp = parsedUrl.searchParams.get('client_ip')?.trim()
+				|| request.headers['x-real-ip']?.toString().trim()
 				|| request.headers['x-forwarded-for']?.toString().split(',')[0].trim()
 				|| request.headers['cf-connecting-ip']?.toString().trim();
 

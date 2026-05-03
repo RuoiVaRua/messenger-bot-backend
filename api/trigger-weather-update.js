@@ -19,8 +19,9 @@ export default async function (request, response) {
   try {
     // Lấy dữ liệu thời tiết. Bạn có thể tùy chỉnh vị trí hoặc các tham số khác nếu cần.
     // Ví dụ: lấy vị trí từ request.query.location hoặc một cấu hình mặc định.
-    const lang = request.query.lang || 'vi'; // Ngôn ngữ cho thời tiết
-    const location = request.query.location || 'Hanoi'; // Vị trí mặc định
+    const parsedUrl = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
+    const lang = parsedUrl.searchParams.get('lang') || 'vi'; // Ngôn ngữ cho thời tiết
+    const location = parsedUrl.searchParams.get('location') || 'Hanoi'; // Vị trí mặc định
 
     console.log(`Fetching weather for location: ${location}, lang: ${lang}`);
     const weatherResponse = await getWeather(location, lang);

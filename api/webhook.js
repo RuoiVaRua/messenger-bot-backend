@@ -9,9 +9,10 @@ const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 export default async (req, res) => {
     // Xử lý yêu cầu GET để xác thực webhook (Facebook sẽ gửi khi bạn cấu hình)
     if (req.method === 'GET') {
-        const mode = req.query['hub.mode'];
-        const token = req.query['hub.verify_token'];
-        const challenge = req.query['hub.challenge'];
+        const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+        const mode = parsedUrl.searchParams.get('hub.mode');
+        const token = parsedUrl.searchParams.get('hub.verify_token');
+        const challenge = parsedUrl.searchParams.get('hub.challenge');
 
         if (mode && token) {
             if (mode === 'subscribe' && token === VERIFY_TOKEN) {

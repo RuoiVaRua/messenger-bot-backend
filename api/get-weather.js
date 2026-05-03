@@ -25,15 +25,16 @@ export default async (req, res) => {
 
     const domainOrigin = req.headers.origin || req.headers.referer || 'Không xác định';
 
-    const lang = req.query.lang || 'vi'; // Mặc định ngôn ngữ là tiếng Việt    
+    const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const lang = parsedUrl.searchParams.get('lang') || 'vi'; // Mặc định ngôn ngữ là tiếng Việt
 
     let city = 'Hanoi'; // Fallback mặc định
 
     let locationData = {};
-    
+
     // Lấy IP của người dùng cuối. Vercel thường cung cấp qua x-real-ip hoặc x-forwarded-for.
-    let clientIp = req.query.client_ip?.toString().trim()
-        || req.headers['x-real-ip']?.toString().trim() 
+    let clientIp = parsedUrl.searchParams.get('client_ip')?.trim()
+        || req.headers['x-real-ip']?.toString().trim()
         || req.headers['x-forwarded-for']?.toString().split(',')[0].trim()
         || req.headers['cf-connecting-ip']?.toString().trim();
 
